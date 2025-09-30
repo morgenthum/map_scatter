@@ -1,0 +1,88 @@
+@startuml
+
+actor Client
+
+participant ScatterRunner
+participant Plan
+participant Kind
+participant PositionSampling
+collections Textures as "TextureRegistry"
+
+participant Evaluator
+database Cache as "FieldProgramCache"
+participant Compiler as "FieldGraphCompiler"
+entity Spec as "FieldGraphSpec"
+collections Program as "FieldProgram"
+participant Runtime as "FieldRuntime"
+collections Grid as "ChunkGrid / ChunkId"
+collections Raster
+
+== Kickoff ==
+
+Client -> ScatterRunner: run(kindId, opts, base_textures)
+note right of ScatterRunner
+  Orchestrates sampling + evaluation
+end note
+
+ScatterRunner -> Plan: prepare(strategy, layers)
+Plan -> Kind: select(kindId)
+Kind --> Plan: Kind
+Plan --> ScatterRunner: plan
+
+ScatterRunner -> Textures: register(base_textures)
+ScatterRunner -> PositionSampling: generate_positions(plan.sampling)
+PositionSampling --> ScatterRunner: positions
+
+== Evaluate ==
+
+ScatterRunner -> Evaluator: evaluate(positions, Kind, opts, Textures)
+
+group Resolve/compile program
+  Evaluator -> Cache: get_or_compile(Kind, opts)
+  alt cache hit
+    Cache --> Evaluator: Program
+    note right
+      Reuse compiled FieldProgram
+    end note
+  else cache miss
+    Cache -> Compiler: compile(Kind, opts)
+    Compiler -> Spec: read(Kind)
+    Spec --> Compiler: field graph
+    Compiler --> Program: program
+    Cache <-- Compiler: Program
+    Cache --> Evaluator: Program
+  end
+end
+
+Evaluator -> Runtime: create(Program, Textures)
+activate Runtime
+
+== Runtime interpretation ==
+
+loop for each chunk in Grid domain
+  Runtime -> Grid: next_chunk()
+  Grid --> Runtime: ChunkId
+
+  loop for each field in Program
+    Runtime -> Program: eval(field, ChunkId, positions)
+    Program --> Runtime: expression/ops
+    Runtime -> Textures: sample(tex, uv/xy)
+    Textures --> Runtime: sample(s)
+  end
+
+  Runtime -> Raster: bake(field values, ChunkId)
+end
+
+deactivate Runtime
+Runtime --> Evaluator: Raster set
+Evaluator --> ScatterRunner: evaluated positions + rasters
+ScatterRunner --> Client: result (scatter data + artifacts)
+
+legend right
+  - Plan selects a Kind and defines sampling strategy/layers
+  - Cache avoids recompilation by storing FieldProgram per (Kind, opts)
+  - On miss, Compiler reads Spec and emits Program
+  - Runtime interprets Program, samples Textures, and bakes per field/chunk into Raster
+endlegend
+
+@enduml

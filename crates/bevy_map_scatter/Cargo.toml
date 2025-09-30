@@ -1,0 +1,11 @@
+[package]
+name = "bevy_map_scatter"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Bevy plugin that integrates the `map_scatter` core crate for object scattering with field-graph evaluation and sampling"
+publish = false
+
+[dev-dependencies]
+map_scatter = { workspace = true }

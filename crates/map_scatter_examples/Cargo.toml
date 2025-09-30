@@ -1,0 +1,15 @@
+[package]
+name = "map_scatter_examples"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+description = "Executable examples for map_scatter."
+
+[dependencies]
+map_scatter = { workspace = true }
+
+glam = "0.30"
+rand = "0.9"
+image = { version = "0.25", default-features = false, features = ["png"] }
+anyhow = "1"

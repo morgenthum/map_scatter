@@ -1,0 +1,223 @@
+//! Node specifications for the field graph.
+//!
+//! This module defines the data model for field nodes used by the field graph
+//! subsystem. Each [`NodeSpec`] represents a typed operation in a DAG.
+use serde::{Deserialize, Serialize};
+
+use super::texture::TextureChannel;
+use crate::fieldgraph::FieldId;
+
+/// Parameters for a constant value node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConstantParams {
+    /// The constant value.
+    pub value: f32,
+}
+
+/// Parameters for a texture sampling node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TextureParams {
+    /// The ID of the texture to sample from.
+    pub texture_id: String,
+    /// The channel of the texture to sample.
+    pub channel: TextureChannel,
+}
+
+/// Parameters for a clamp node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ClampParams {
+    /// Minimum value to clamp to.
+    pub min: f32,
+    /// Maximum value to clamp to.
+    pub max: f32,
+}
+
+/// Parameters for a smoothstep node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SmoothStepParams {
+    /// Lower edge of the transition.
+    pub edge0: f32,
+    /// Upper edge of the transition.
+    pub edge1: f32,
+}
+
+/// Parameters for a scale node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ScaleParams {
+    /// Scaling factor.
+    pub factor: f32,
+}
+
+/// Parameters for a power node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PowParams {
+    /// Exponent value.
+    pub exp: f32,
+}
+
+/// Parameters for an EDT normalize node.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EdtNormalizeParams {
+    /// Threshold value to avoid division by zero.
+    pub threshold: f32,
+    /// Maximum distance value for normalization.
+    pub d_max: f32,
+}
+
+/// Specification of a node in the field graph.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum NodeSpec {
+    Constant {
+        params: ConstantParams,
+    },
+    Texture {
+        params: TextureParams,
+    },
+    Add {
+        inputs: Vec<FieldId>,
+    },
+    Sub {
+        inputs: Vec<FieldId>,
+    },
+    Mul {
+        inputs: Vec<FieldId>,
+    },
+    Min {
+        inputs: Vec<FieldId>,
+    },
+    Max {
+        inputs: Vec<FieldId>,
+    },
+    Invert {
+        inputs: Vec<FieldId>,
+    },
+    Scale {
+        inputs: Vec<FieldId>,
+        params: ScaleParams,
+    },
+    Clamp {
+        inputs: Vec<FieldId>,
+        params: ClampParams,
+    },
+    SmoothStep {
+        inputs: Vec<FieldId>,
+        params: SmoothStepParams,
+    },
+    Pow {
+        inputs: Vec<FieldId>,
+        params: PowParams,
+    },
+    EdtNormalize {
+        inputs: Vec<FieldId>,
+        params: EdtNormalizeParams,
+    },
+}
+
+impl NodeSpec {
+    /// Returns the input field IDs for this node.
+    pub fn inputs(&self) -> &[FieldId] {
+        match self {
+            NodeSpec::Add { inputs }
+            | NodeSpec::Sub { inputs }
+            | NodeSpec::Mul { inputs }
+            | NodeSpec::Min { inputs }
+            | NodeSpec::Max { inputs }
+            | NodeSpec::Invert { inputs }
+            | NodeSpec::Scale { inputs, .. }
+            | NodeSpec::Clamp { inputs, .. }
+            | NodeSpec::SmoothStep { inputs, .. }
+            | NodeSpec::Pow { inputs, .. }
+            | NodeSpec::EdtNormalize { inputs, .. } => inputs,
+            NodeSpec::Constant { .. } | NodeSpec::Texture { .. } => &[],
+        }
+    }
+
+    /// Creates a new constant value node specification.
+    pub fn constant(value: f32) -> Self {
+        NodeSpec::Constant {
+            params: ConstantParams { value },
+        }
+    }
+
+    /// Creates a new texture sampling node specification.
+    pub fn texture(id: impl Into<String>, channel: TextureChannel) -> Self {
+        NodeSpec::Texture {
+            params: TextureParams {
+                texture_id: id.into(),
+                channel,
+            },
+        }
+    }
+
+    /// Creates a new addition node specification.
+    pub fn add(inputs: Vec<FieldId>) -> Self {
+        NodeSpec::Add { inputs }
+    }
+
+    /// Creates a new subtraction node specification.
+    pub fn sub(inputs: Vec<FieldId>) -> Self {
+        NodeSpec::Sub { inputs }
+    }
+
+    /// Creates a new multiplication node specification.
+    pub fn mul(inputs: Vec<FieldId>) -> Self {
+        NodeSpec::Mul { inputs }
+    }
+
+    /// Creates a new minimum node specification.
+    pub fn min(inputs: Vec<FieldId>) -> Self {
+        NodeSpec::Min { inputs }
+    }
+
+    /// Creates a new maximum node specification.
+    pub fn max(inputs: Vec<FieldId>) -> Self {
+        NodeSpec::Max { inputs }
+    }
+
+    /// Creates a new inversion node specification.
+    pub fn invert(input: FieldId) -> Self {
+        NodeSpec::Invert {
+            inputs: vec![input],
+        }
+    }
+
+    /// Creates a new scaling node specification.
+    pub fn scale(input: FieldId, factor: f32) -> Self {
+        NodeSpec::Scale {
+            inputs: vec![input],
+            params: ScaleParams { factor },
+        }
+    }
+
+    /// Creates a new clamping node specification.
+    pub fn clamp(input: FieldId, min: f32, max: f32) -> Self {
+        NodeSpec::Clamp {
+            inputs: vec![input],
+            params: ClampParams { min, max },
+        }
+    }
+
+    /// Creates a new smoothstep node specification.
+    pub fn smoothstep(input: FieldId, edge0: f32, edge1: f32) -> Self {
+        NodeSpec::SmoothStep {
+            inputs: vec![input],
+            params: SmoothStepParams { edge0, edge1 },
+        }
+    }
+
+    /// Creates a new power node specification.
+    pub fn pow(input: FieldId, exp: f32) -> Self {
+        NodeSpec::Pow {
+            inputs: vec![input],
+            params: PowParams { exp },
+        }
+    }
+
+    /// Creates a new EDT normalization node specification.
+    pub fn edt_normalize(input: FieldId, threshold: f32, d_max: f32) -> Self {
+        NodeSpec::EdtNormalize {
+            inputs: vec![input],
+            params: EdtNormalizeParams { threshold, d_max },
+        }
+    }
+}

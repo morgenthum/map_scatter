@@ -1,0 +1,50 @@
+@startuml
+skinparam ComponentStyle rectangle
+hide stereotypes
+
+package "sampling" {
+  [PositionSampling]
+}
+
+package "scatter" {
+  [ScatterRunner]
+  [Plan]
+  [Kind]
+  [Evaluator]
+}
+
+package "fieldgraph" {
+  [FieldGraphSpec] as Spec
+  [FieldGraphCompiler] as Compiler
+  [FieldProgram] as Program
+  [FieldRuntime] as Runtime
+  [TextureRegistry] as Textures
+  [ChunkGrid / ChunkId] as Grid
+  [Raster]
+  [FieldProgramCache] as Cache
+}
+
+' Relationships
+Kind *-- Spec
+Plan --> Kind : selects
+
+' Main flow
+ScatterRunner --> PositionSampling : generate positions
+ScatterRunner --> Plan : use strategy/layers
+ScatterRunner --> Evaluator : evaluate positions
+ScatterRunner --> Textures : provide base textures
+
+' Compilation flow
+Evaluator --> Cache : get_or_compile(kind, opts)
+Cache --> Compiler : compile if needed
+Compiler ..> Spec : read
+Compiler --> Program : produce
+
+' Runtime evaluation
+Evaluator --> Runtime : create(program, textures)
+Runtime ..> Program : interpret fields
+Runtime ..> Textures : sample textures
+Runtime ..> Grid : domain/chunks
+Runtime --> Raster : bake per field/chunk
+
+@enduml
