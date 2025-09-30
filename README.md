@@ -32,7 +32,7 @@ Add the dependency to your own project:
 
 ````toml
 [dependencies]
-map_scatter = "0.1"
+map_scatter = "0.2"
 rand = "0.9"
 glam = { version = "0.30", features = ["mint"] }
 mint = "0.5"
