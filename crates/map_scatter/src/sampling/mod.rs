@@ -106,7 +106,7 @@ mod tests {
         // Should return exactly 1.0 when input is u32::MAX
         assert_eq!(result, u32::MAX as f32 / (u32::MAX as f32 + 1.0));
         // Verify it's in range [0,1]
-        assert!(result >= 0.0 && result <= 1.0);
+        assert!((0.0..=1.0).contains(&result));
         // Should be very close to 1.0 but not exceed it
         assert!(result < 1.0 || (result - 1.0).abs() < f32::EPSILON);
     }
@@ -120,7 +120,7 @@ mod tests {
             let mut rng = FixedRng { value };
             let result = rand01(&mut rng);
             assert!(
-                result >= 0.0 && result <= 1.0,
+                (0.0..=1.0).contains(&result),
                 "rand01({}) = {} is out of range [0,1]",
                 value,
                 result
