@@ -19,12 +19,17 @@ Rule-based object scattering library with field-graph evaluation and sampling.
 At runtime, map_scatter evaluates the field graph over chunked grids with caching, selects valid placements according to your strategy, and optionally produces overlay textures for downstream layers.
 
 ### Highlights
+
 - Field graph authoring and compilation into an efficient program
 - Chunked evaluation with raster caching for speed
 - Multiple sampling strategies for candidate generation
 - Per-layer selection strategies (weighted random, highest probability)
 - Optional overlay generation to feed subsequent layers
 - Event stream for inspection, logging, and tooling
+
+## Examples
+
+See the [example crate](/crates/map_scatter_examples) for curated demos you can run locally.
 
 ## Architecture
 
@@ -67,11 +72,11 @@ fn main() {
 
     // 2) Build a layer using a sampling strategy (e.g., jittered grid)
     let layer = Layer::new_with(
-        "layer_grass",
+        "grass",
         vec![grass],
         JitterGridSampling::new(0.35, 5.0), // jitter, cell_size
     )
-    // Optional: produce an overlay mask to reuse in later layers (name: "mask_layer_grass")
+    // Optional: produce an overlay mask to reuse in later layers (name: "mask_grass")
     .with_overlay((256, 256), 3);
 
     // 3) Assemble a plan (one or more layers)
@@ -160,32 +165,16 @@ fn run_with_events(plan: &Plan) {
 - Integrates well with `tracing` for diagnostics
 - Use `rand` RNGs; examples commonly use `StdRng`
 
+### Bevy Compatibility
+
+| `map_scatter` | `bevy` |
+| ------------- | ------ |
+| `0.2`         | `0.17` |
+
+
 ## Benchmarks
 
 Some micro-benchmarks are included:
 ```bash
 cargo bench -p map_scatter
 ```
-
-## Roadmap
-
-- Additional field nodes and utilities
-- Advanced distance-field ops and compositors
-- More sampling controls and distributions
-- Higher-level authoring ergonomics
-
-Contributions and ideas are welcome—please open issues or PRs.
-
-## License
-
-map_scatter is dual-licensed under either:
-- MIT License ([LICENSE-MIT](https://github.com/morgenthum/map_scatter/blob/main/LICENSE-MIT))
-- Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/morgenthum/map_scatter/blob/main/LICENSE-APACHE))
-
-at your option.
-
-## Links
-
-- Documentation: https://docs.rs/map_scatter
-- Crate: https://crates.io/crates/map_scatter
-- Repository: https://github.com/morgenthum/map_scatter

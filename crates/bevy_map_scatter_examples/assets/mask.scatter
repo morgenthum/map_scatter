@@ -1,0 +1,70 @@
+(
+  layers: [
+    (
+      id: "dots",
+      kinds: [
+        (
+          id: "dots",
+          spec: (
+            nodes: {
+              "mask_raw": Texture(
+                params: (
+                  texture_id: "no_space",
+                  channel: R,
+                ),
+              ),
+              "mask_inv": Invert(
+                inputs: ["mask_raw"],
+              ),
+              "dist_norm": EdtNormalize(
+                inputs: ["mask_inv"],
+                params: (
+                  threshold: 0.5,
+                  d_max: 20.0,
+                ),
+              ),
+              "outside": Invert(
+                inputs: ["mask_raw"],
+              ),
+              "near": Invert(
+                inputs: ["dist_norm"],
+              ),
+              "near_sharp": Pow(
+                inputs: ["near"],
+                params: (
+                  exp: 4.0,
+                ),
+              ),
+              "gate_min": SmoothStep(
+                inputs: ["dist_norm"],
+                params: (
+                  edge0: 0.0,
+                  edge1: 0.05,
+                ),
+              ),
+              "score": Mul(
+                inputs: ["near_sharp", "gate_min"],
+              ),
+              "probability": Clamp(
+                inputs: ["score"],
+                params: (
+                  min: 0.0,
+                  max: 1.0,
+                ),
+              ),
+            },
+            semantics: {
+              "outside": Gate,
+              "probability": Probability,
+            },
+          ),
+        ),
+      ],
+      sampling: HexJitterGrid(
+        jitter: 1.0,
+        cell_size: 2.0,
+      ),
+      selection_strategy: WeightedRandom,
+    ),
+  ],
+)

@@ -2,7 +2,7 @@
 name = "map_scatter"
 version = "0.2.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 authors = ["Mario Morgenthum <mario.morgenthum@gmail.com>"]
 description = "Rule-based object scattering library with field-graph evaluation and sampling"

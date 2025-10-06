@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "crates/bevy_map_scatter",
+    "crates/bevy_map_scatter_examples",
     "crates/map_scatter",
     "crates/map_scatter_examples",
 ]
@@ -7,10 +9,11 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 
 [workspace.dependencies]
 map_scatter = { path = "crates/map_scatter", version = "0.2.0" }
+bevy_map_scatter = { path = "crates/bevy_map_scatter", version = "0.2.0" }
 
 [profile.dev]
 opt-level = 1

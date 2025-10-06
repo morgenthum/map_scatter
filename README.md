@@ -14,17 +14,9 @@ Rule-based object scattering with field-graph evaluation and flexible sampling s
 This repository is a Rust workspace containing:
 
 - A fast, composable core library ([`map_scatter`](./crates/map_scatter/)) for authoring and evaluating scalar field graphs, generating candidate positions via multiple sampling strategies, and selecting placements in multi-layer plans.
-- An examples crate with curated demos you can run locally.
-- A future Bevy plugin ([`bevy_map_scatter`](./crates/bevy_map_scatter/)) to integrate the core library into Bevy as a plugin.
-
-## Crates in this workspace
-
-- Core library: `map_scatter`
-  - [README.md](./crates/map_scatter/README.md)
-  - [ARCHITECTURE.md](./crates/map_scatter/ARCHITECTURE.md)
-- Bevy plugin: `bevy_map_scatter` (planned)
-- Examples: `map_scatter_examples`
-    - [README.md](./crates/map_scatter_examples/README.md)
+- An [`map_scatter_examples`](./crates/map_scatter_examples) crate with curated demos you can run locally.
+- A Bevy plugin ([`bevy_map_scatter`](./crates/bevy_map_scatter/)) to integrate the core library into Bevy as a plugin.
+- A [`bevy_map_scatter_examples`](./crates/bevy_map_scatter_examples) crate with Bevy-specific examples.
 
 ## Quick start (core library)
 
@@ -43,10 +35,12 @@ Minimal usage example:
 ````rust
 use glam::Vec2;
 use rand::{SeedableRng, rngs::StdRng};
+
 use map_scatter::prelude::*;
 
 fn main() {
-    // Define a "kind" with a trivial probability=1.0 (always placeable)
+    // 1) Author a field graph for a “kind”
+    //    Here, we tag a constant=1.0 as the Probability field (always placeable).
     let mut spec = FieldGraphSpec::default();
     spec.add_with_semantics(
         "probability",
@@ -55,36 +49,42 @@ fn main() {
     );
     let grass = Kind::new("grass", spec);
 
-    // One layer with a jittered grid sampler
+    // 2) Build a layer using a sampling strategy (e.g., jittered grid)
     let layer = Layer::new_with(
-        "layer_grass",
+        "grass",
         vec![grass],
-        JitterGridSampling::new(0.35, 5.0),
-    );
+        JitterGridSampling::new(0.35, 5.0), // jitter, cell_size
+    )
+    // Optional: produce an overlay mask to reuse in later layers (name: "mask_grass")
+    .with_overlay((256, 256), 3);
 
-    // Assemble a plan
+    // 3) Assemble a plan (one or more layers)
     let plan = Plan::new().with_layer(layer);
 
-    // Run
+    // 4) Prepare runtime
     let mut cache = FieldProgramCache::new();
-    let textures = TextureRegistry::new();
+    let textures = TextureRegistry::new(); // Register textures as needed
     let cfg = RunConfig::new(Vec2::new(100.0, 100.0))
         .with_chunk_extent(32.0)
         .with_raster_cell_size(1.0)
         .with_grid_halo(2);
 
+    // 5) Run
     let mut rng = StdRng::seed_from_u64(42);
     let mut runner = ScatterRunner::new(cfg, &textures, &mut cache);
     let result = runner.run(&plan, &mut rng);
 
-    println!("Placed {} instances.", result.placements.len());
+    println!(
+        "Placed {} instances (evaluated: {}, rejected: {}).",
+        result.placements.len(),
+        result.positions_evaluated,
+        result.positions_rejected
+    );
 }
 ````
 
 ## License
 
 This project is dual-licensed under either:
-- MIT License — ./LICENSE-MIT
-- Apache License, Version 2.0 — ./LICENSE-APACHE
-
-You may choose either license.
+- [MIT License](./LICENSE-MIT) or
+- [Apache License, Version 2.0](./LICENSE-APACHE)

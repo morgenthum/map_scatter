@@ -2,7 +2,7 @@
 name = "map_scatter_examples"
 version = "0.2.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 publish = false
 description = "Executable examples for map_scatter."
 

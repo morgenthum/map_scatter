@@ -1,0 +1,27 @@
+(
+  layers: [
+    (
+      id: "dots",
+      kinds: [
+        (
+          id: "dots",
+          spec: (
+            nodes: {
+              "probability": Constant(
+                params: ConstantParams(value: 1.0),
+              ),
+            },
+            semantics: {
+              "probability": Probability,
+            },
+          ),
+        ),
+      ],
+      sampling: JitterGrid(
+        jitter: 1.0,
+        cell_size: 1.0,
+      ),
+      selection_strategy: WeightedRandom,
+    ),
+  ],
+)

@@ -1,11 +1,28 @@
 [package]
 name = "bevy_map_scatter"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT OR Apache-2.0"
+authors = ["Mario Morgenthum <mario.morgenthum@gmail.com>"]
 description = "Bevy plugin that integrates the `map_scatter` core crate for object scattering with field-graph evaluation and sampling"
-publish = false
+documentation = "https://docs.rs/bevy_map_scatter"
+repository = "https://github.com/morgenthum/map_scatter"
+keywords = ["bevy", "gamedev", "map-generation", "procedural", "sampling"]
+categories = ["algorithms", "game-development", "game-engines", "graphics"]
+readme = "README.md"
 
-[dev-dependencies]
+[dependencies]
+bevy = { default-features = false, version = "0.17", features = [
+    "bevy_asset",
+    "bevy_image",
+    "bevy_log",
+    "bevy_render",
+] }
 map_scatter = { workspace = true }
+rand = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+glam = "0.30"
+ron = "0.10"
+anyhow = "1"
+crossbeam-channel = "0.5"
