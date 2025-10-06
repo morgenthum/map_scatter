@@ -31,8 +31,7 @@ impl FieldGraphCompiler {
             for input in node_spec.inputs() {
                 if !spec.nodes.contains_key(input) {
                     return Err(Error::Compile(format!(
-                        "Node '{}' references unknown input '{}'",
-                        id, input
+                        "Node '{id}' references unknown input '{input}'"
                     )));
                 }
             }
@@ -63,8 +62,7 @@ fn validate_node_inputs(id: &str, node_spec: &NodeSpec) -> Result<()> {
     let ensure_at_least_one = |variant: &str| {
         if inputs.is_empty() {
             Err(Error::Compile(format!(
-                "Node '{}' ({}) requires at least one input",
-                id, variant
+                "Node '{id}' ({variant}) requires at least one input"
             )))
         } else {
             Ok(())

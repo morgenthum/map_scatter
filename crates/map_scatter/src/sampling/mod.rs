@@ -121,9 +121,7 @@ mod tests {
             let result = rand01(&mut rng);
             assert!(
                 (0.0..=1.0).contains(&result),
-                "rand01({}) = {} is out of range [0,1]",
-                value,
-                result
+                "rand01({value}) = {result} is out of range [0,1]"
             );
         }
     }

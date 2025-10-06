@@ -332,8 +332,7 @@ fn run_layer_with_events_internal<R: RngCore>(
                     sink.send(ScatterEvent::Warning {
                         context: format!("layer:{} kind:{}", layer.id, k.id),
                         message: format!(
-                            "Multiple Probability fields found; using first: {:?}",
-                            prob_ids
+                            "Multiple Probability fields found; using first: {prob_ids:?}"
                         ),
                     });
                 }
@@ -347,7 +346,7 @@ fn run_layer_with_events_internal<R: RngCore>(
                 );
                 sink.send(ScatterEvent::Warning {
                     context: format!("layer:{} kind:{}", layer.id, k.id),
-                    message: format!("Failed to compile kind: {}", e),
+                    message: format!("Failed to compile kind: {e}"),
                 });
             }
         }

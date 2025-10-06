@@ -16,7 +16,7 @@ fn make_type_evaluations(count: usize, allowed_ratio: f32, seed: u64) -> Vec<Kin
         let allowed = rng.random::<f32>() < allowed_ratio;
 
         let w = 0.01 + rng.random::<f32>() * 0.99;
-        let id = format!("S{}", i);
+        let id = format!("S{i}");
 
         evals.push(KindEvaluation {
             kind: Kind::new(id, FieldGraphSpec::default()),

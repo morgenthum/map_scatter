@@ -224,10 +224,7 @@ pub fn render_run_result_to_png(
     for p in &result.placements {
         *per_kind.entry(p.kind_id.clone()).or_insert(0) += 1;
     }
-    let mut kind_parts: Vec<String> = per_kind
-        .iter()
-        .map(|(k, n)| format!("{}: {}", k, n))
-        .collect();
+    let mut kind_parts: Vec<String> = per_kind.iter().map(|(k, n)| format!("{k}: {n}")).collect();
     kind_parts.sort();
 
     println!(
