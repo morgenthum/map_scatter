@@ -11,15 +11,43 @@ Bevy plugin that integrates the `map_scatter` core crate for object scattering w
 
 ## Overview
 
-**bevy_map_scatter** wires the [**map_scatter**](/crates/map_scatter/) runtime into Bevy in an ECS- and editor-friendly way:
+**bevy_map_scatter** wires the [**map_scatter**](https://github.com/morgenthum/map_scatter/blob/main/crates/map_scatter/README.md) runtime into Bevy in an ECS- and editor-friendly way:
 - Asset-based authoring of scatter plans (RON): load `*.scatter` files via `AssetServer`.
 - Texture integration: snapshot Bevy `Image`s to CPU textures with configurable domain mapping.
 - Asynchronous execution: runs scatter jobs on `AsyncComputeTaskPool`.
 - Streaming diagnostics: forward core `ScatterEvent`s as Bevy messages (`ScatterMessage`).
 
+## Use Cases
+
+Use `bevy_map_scatter` when you want to populate a Bevy world with many small entities (plants, props, resources, decals) in a way that stays data‑driven, repeatable, and easy to iterate inside your ECS + asset workflow.
+
+You control:
+- Where things may appear (scatter plan fields, textures, masks)
+- How different categories avoid or complement each other (layer order + overlays)
+- Distribution style (blue‑noise, grids, clustered, low‑discrepancy)
+- Deterministic seeds for builds, while still allowing variation per run if desired
+
+Three Bevy‑flavoured examples:
+
+1. Stylized forest scene  
+   Load a `forest.scatter` asset: first layer places large trees sparsely; second layer adds mushrooms only where tree probability is low; third layer fills remaining space with grass sprouts. Tweaking a gradient texture or a numeric threshold in the RON file and hot‑reloading instantly updates placement logic without touching code.
+
+2. Town dressing in an in‑editor tool  
+   A scatter plan drives benches near plazas (inside a plaza mask), lamp posts at moderate spacing along exported road splines (converted to a texture/field), and small clutter (barrels/crates) only where neither benches nor lamp posts were placed (using an overlay exclusion). Designers modify masks and rerun a scatter system; results stream in asynchronously without stalling the main thread.
+
+3. Dungeon encounter setup
+   Camps (safe zones) are placed first in large rooms. Enemy spawn markers are placed next-never inside camp influence. Rare loot node markers are then sprinkled in dead‑end corridors with a low probability but enforced spacing. All become regular Bevy entities you can query, tag, despawn, or decorate further in subsequent systems.
+
+Why it fits nicely into Bevy:
+- Assets: scatter plans are just assets-versioned, hot‑reloadable, serializable.
+- ECS: placements become entities; you decide what components to attach for rendering, gameplay, or tooling.
+- Async: heavy scatter work happens on the async compute pool; the main schedule stays responsive.
+- Determinism: same seed + same plan + same textures = identical placements (useful for networking or reproducible builds).
+- Extensibility: hook into events (`ScatterFinished`, etc.) to trigger spawning meshes, sprites, or custom logic.
+
 ## Examples
 
-See the [example crate](/crates/bevy_map_scatter_examples) for curated demos you can run locally.
+See the [example crate](https://github.com/morgenthum/map_scatter/blob/main/crates/bevy_map_scatter_examples/README.md) for curated demos you can run locally.
 
 ## Quick Start
 

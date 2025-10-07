@@ -27,6 +27,9 @@ jobs:
       - name: Cache cargo build artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Install system dependencies (Wayland/X11)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev wayland-protocols pkg-config && sudo rm -rf /var/lib/apt/lists/*
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -46,6 +49,9 @@ jobs:
       - name: Cache cargo build artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Install system dependencies (Wayland/X11)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev wayland-protocols pkg-config && sudo rm -rf /var/lib/apt/lists/*
+
       - name: Run tests
         run: cargo test --all --all-features --no-fail-fast
 
@@ -61,6 +67,9 @@ jobs:
 
       - name: Cache cargo build artifacts
         uses: Swatinem/rust-cache@v2
+
+      - name: Install system dependencies (Wayland/X11)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev wayland-protocols pkg-config && sudo rm -rf /var/lib/apt/lists/*
 
       - name: Build documentation
         run: cargo doc --workspace --no-deps --all-features

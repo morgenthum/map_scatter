@@ -27,9 +27,36 @@ At runtime, map_scatter evaluates the field graph over chunked grids with cachin
 - Optional overlay generation to feed subsequent layers
 - Event stream for inspection, logging, and tooling
 
+## Use Cases
+
+map_scatter is for situations where you need to fill a 2D world (or a 2D projection of a 3D one) with many small things-plants, props, resources, decals-while keeping control over:
+- Where they can appear (rules, masks, gradients)
+- How dense or sparse each category is
+- How later layers react to earlier ones (avoid, blend, fill gaps)
+- Performance and determinism (repeatable seeds, chunked evaluation)
+
+Three concrete, narrative examples:
+
+1. Open‑world survival (vegetation & resources)  
+   You want tall trees only on gentle ground, berry bushes in semi‑open spaces not too close to trees, and scattered herbs in any remaining gaps but never inside player paths. A single layered plan: trees first (sparse sampler), bushes next (jittered grid but excluding tree placements), herbs last (fill remaining probability). Change a moisture texture or tweak a threshold and regenerate instantly with the same seed for reproducible builds.
+
+2. City builder / settlement dressing  
+   You generate lamp posts along roads, then place decorative planters only where there is light coverage but not blocking intersections, and finally small clutter (crates, barrels) where neither lamp posts nor planters ended up. Each layer can produce an overlay mask the next one uses to stay out of the way - no manual hand-tuning after layout changes.
+
+3. Roguelike / dungeon population  
+   First pass: safe camp markers in wide rooms (uniform sampler filtered by room size). Second: enemy spawn points in other rooms but never within a radius of a camp overlay. Third: rare loot stashes in dead-end corridors with a low probability but guaranteed minimum spacing. Reroll with a different seed for variety while keeping consistent logic.
+
+Why it helps:
+- Express intention: “only near”, “not inside”, “prefer lighter areas” instead of hard-coded placement loops.
+- Iterate quickly: tweak thresholds, textures, or ordering and rerun.
+- Mix distribution styles without bespoke code per asset type.
+- Keep large worlds manageable: chunked evaluation avoids blowing up memory or frame time.
+- Deterministic builds: same seed + same inputs = identical placements.
+
 ## Examples
 
-See the [example crate](/crates/map_scatter_examples) for curated demos you can run locally.
+See the [example crate](https://github.com/morgenthum/map_scatter/blob/main/crates/map_scatter_examples/README.md) for curated demos you can run locally.
+
 
 ## Architecture
 
