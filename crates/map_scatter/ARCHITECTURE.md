@@ -8,21 +8,21 @@
 At a glance, the system is organized into three functional areas:
 
 - sampling
-  - `PositionSampling` — produces candidate positions based on a configured sampling strategy.
+  - `PositionSampling` - produces candidate positions based on a configured sampling strategy.
 - scatter
-  - `ScatterRunner` — end-to-end orchestration entrypoint.
-  - `Plan` — bundle of strategy and layer configuration; selects a `Kind`.
-  - `Kind` — identifies the field-graph specification to be used for a scenario.
-  - `Evaluator` — resolves/compiles the program and evaluates positions.
+  - `ScatterRunner` - end-to-end orchestration entrypoint.
+  - `Plan` - bundle of strategy and layer configuration; selects a `Kind`.
+  - `Kind` - identifies the field-graph specification to be used for a scenario.
+  - `Evaluator` - resolves/compiles the program and evaluates positions.
 - fieldgraph
-  - `FieldGraphSpec` — declarative description of fields and their relationships.
-  - `FieldGraphCompiler` — turns a `Spec` into an executable `FieldProgram`.
-  - `FieldProgram` — compiled representation consumed by the runtime.
-  - `FieldRuntime` — interprets a `Program` over a spatial domain.
-  - `TextureRegistry` — provides texture lookups to the runtime.
-  - `ChunkGrid / ChunkId` — partitions the domain for streaming evaluation.
-  - `Raster` — per-field, per-chunk baked results.
-  - `FieldProgramCache` — caches compiled programs keyed by (`Kind`, options).
+  - `FieldGraphSpec` - declarative description of fields and their relationships.
+  - `FieldGraphCompiler` - turns a `Spec` into an executable `FieldProgram`.
+  - `FieldProgram` - compiled representation consumed by the runtime.
+  - `FieldRuntime` - interprets a `Program` over a spatial domain.
+  - `TextureRegistry` - provides texture lookups to the runtime.
+  - `ChunkGrid / ChunkId` - partitions the domain for streaming evaluation.
+  - `Raster` - per-field, per-chunk baked results.
+  - `FieldProgramCache` - caches compiled programs keyed by (`Kind`, options).
 
 ### Component Diagram
 

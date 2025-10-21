@@ -47,7 +47,7 @@ A linear texture gradient biases sampling density from left to right.
 ### Grids - Bilinear vs Nearest
 Source: [src/bin/grids-bilinear-vs-nearest.rs](src/bin/grids-bilinear-vs-nearest.rs)
 
-Shows how the same raster grid looks with nearest neighbour versus bilinear sampling.
+Shows how the same raster grid looks with nearest neighbor compared to bilinear sampling.
 
 #### Nearest sampling
 ![Nearest sampling](images/grids-bilinear-vs-nearest-nearest.png)
@@ -65,7 +65,7 @@ Blends water, desert, forest, and mountain kinds from synthetic elevation and mo
 ### Grids - Radial Probability
 Source: [src/bin/grids-radial-probability.rs](src/bin/grids-radial-probability.rs)
 
-Radial falloff grid keeps more placements near the centre of the domain.
+Radial falloff grid keeps more placements near the center of the domain.
 
 ![Radial probability](images/grids-radial-probability.png)
 

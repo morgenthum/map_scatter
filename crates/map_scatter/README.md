@@ -9,14 +9,24 @@ Rule-based object scattering library with field-graph evaluation and sampling.
 
 ![logo](./logo.png)
 
-## Overview
+## What is it?
 
-**map_scatter** is a fast, composable scattering library for games and tools. You define:
-- Scalar fields as a directed acyclic graph (DAG), including textures and distance-field utilities.
-- Candidate positions via a selection of samplers (Poisson disk, jittered grid, Halton, best-candidate, clustered, and more).
-- A multi-layer plan describing which “kinds” can be placed, their probabilities, and gating rules.
+**map_scatter** helps you fill 2D worlds (or a 2D projection of 3D) with lots of small things - vegetation, props, resources, decals, spawn points - quickly and reproducibly.
 
-At runtime, map_scatter evaluates the field graph over chunked grids with caching, selects valid placements according to your strategy, and optionally produces overlay textures for downstream layers.
+## How it works (short)
+
+You describe it in three simple parts:
+- Fields (where things may appear): numbers per position built from textures, distances, and simple operations like thresholds or masks.
+- Sampling (how candidates are spread): Poisson disk/blue‑noise, jittered grid, low‑discrepancy (Halton), best‑candidate, clustered, etc.
+- Layers (in what order categories are placed): later layers can avoid or reuse earlier results via overlays/masks.
+
+Fields are compiled into a program and evaluated in chunks with caching for deterministic performance.
+
+Links:
+- Examples: https://github.com/morgenthum/map_scatter/blob/main/crates/map_scatter_examples/README.md
+- Architecture: ./ARCHITECTURE.md
+
+
 
 ### Highlights
 
@@ -27,27 +37,27 @@ At runtime, map_scatter evaluates the field graph over chunked grids with cachin
 - Optional overlay generation to feed subsequent layers
 - Event stream for inspection, logging, and tooling
 
-## Use Cases
+## Use cases
 
-map_scatter is for situations where you need to fill a 2D world (or a 2D projection of a 3D one) with many small things-plants, props, resources, decals-while keeping control over:
+map_scatter is for situations where you need to fill a 2D world (or a 2D projection of a 3D one) with many small things - plants, props, resources, decals - while keeping control over:
 - Where they can appear (rules, masks, gradients)
 - How dense or sparse each category is
 - How later layers react to earlier ones (avoid, blend, fill gaps)
 - Performance and determinism (repeatable seeds, chunked evaluation)
 
-Three concrete, narrative examples:
+Three examples:
 
 1. Open‑world survival (vegetation & resources)  
    You want tall trees only on gentle ground, berry bushes in semi‑open spaces not too close to trees, and scattered herbs in any remaining gaps but never inside player paths. A single layered plan: trees first (sparse sampler), bushes next (jittered grid but excluding tree placements), herbs last (fill remaining probability). Change a moisture texture or tweak a threshold and regenerate instantly with the same seed for reproducible builds.
 
 2. City builder / settlement dressing  
-   You generate lamp posts along roads, then place decorative planters only where there is light coverage but not blocking intersections, and finally small clutter (crates, barrels) where neither lamp posts nor planters ended up. Each layer can produce an overlay mask the next one uses to stay out of the way - no manual hand-tuning after layout changes.
+   You generate lamp posts along roads, then place decorative planters only where there is light coverage but not blocking intersections, and finally small clutter (crates, barrels) where neither lamp posts nor planters ended up. Each layer can produce an overlay mask the next one uses to stay out of the way - without manual adjustments after layout changes.
 
 3. Roguelike / dungeon population  
    First pass: safe camp markers in wide rooms (uniform sampler filtered by room size). Second: enemy spawn points in other rooms but never within a radius of a camp overlay. Third: rare loot stashes in dead-end corridors with a low probability but guaranteed minimum spacing. Reroll with a different seed for variety while keeping consistent logic.
 
-Why it helps:
-- Express intention: “only near”, “not inside”, “prefer lighter areas” instead of hard-coded placement loops.
+Notes:
+- Express intention: "only near", "not inside", "prefer lighter areas" instead of hard-coded placement loops.
 - Iterate quickly: tweak thresholds, textures, or ordering and rerun.
 - Mix distribution styles without bespoke code per asset type.
 - Keep large worlds manageable: chunked evaluation avoids blowing up memory or frame time.
@@ -87,7 +97,7 @@ use rand::{SeedableRng, rngs::StdRng};
 use map_scatter::prelude::*;
 
 fn main() {
-    // 1) Author a field graph for a “kind”
+    // 1) Author a field graph for a "kind"
     //    Here, we tag a constant=1.0 as the Probability field (always placeable).
     let mut spec = FieldGraphSpec::default();
     spec.add_with_semantics(
@@ -191,13 +201,6 @@ fn run_with_events(plan: &Plan) {
 - No engine lock-in; pair with your renderer/tooling of choice
 - Integrates well with `tracing` for diagnostics
 - Use `rand` RNGs; examples commonly use `StdRng`
-
-### Bevy Compatibility
-
-| `map_scatter` | `bevy` |
-| ------------- | ------ |
-| `0.2`         | `0.17` |
-
 
 ## Benchmarks
 
