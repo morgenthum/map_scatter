@@ -19,10 +19,15 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v5
 
-      - name: Install toolchain (rustfmt, clippy)
+      - name: Install toolchain (clippy, stable)
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: clippy
+
+      - name: Install toolchain (rustfmt, nightly)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
 
       - name: Cache cargo build artifacts
         uses: Swatinem/rust-cache@v2
@@ -30,8 +35,8 @@ jobs:
       - name: Install system dependencies (Wayland/X11)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev wayland-protocols libasound2-dev libudev-dev pkg-config
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Check formatting (nightly rustfmt)
+        run: cargo +nightly fmt --all -- --check
 
       - name: Clippy lint
         run: cargo clippy --all-targets --all-features -- -D warnings
