@@ -8,11 +8,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use glam::Vec2;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 /// Texture channel to sample from.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TextureChannel {
     R,
     G,

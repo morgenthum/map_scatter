@@ -3,19 +3,20 @@ use core::result::Result;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
 use bevy::prelude::*;
-use bevy::reflect::TypePath;
 use bevy::tasks::ConditionalSendFuture;
 use map_scatter::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Asset describing a complete scatter [`Plan`] for `map_scatter`.
-#[derive(Asset, TypePath, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Asset, TypePath, Clone, Debug)]
 pub struct ScatterPlanAsset {
     pub layers: Vec<ScatterLayerDef>,
 }
 
 /// Layer definition within a [`ScatterPlanAsset`].
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct ScatterLayerDef {
     pub id: String,
     pub kinds: Vec<ScatterKindDef>,
@@ -26,26 +27,30 @@ pub struct ScatterLayerDef {
 }
 
 /// Kind definition.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct ScatterKindDef {
     pub id: String,
     pub spec: FieldGraphSpec,
 }
 
 /// Selection strategy for layers.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug)]
 pub enum SelectionStrategyDef {
     WeightedRandom,
     HighestProbability,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub enum ParentDef {
     Count(usize),
     Density(f32),
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub enum SamplingDef {
     UniformRandom {
         count: usize,
@@ -236,9 +241,19 @@ impl AssetLoader for ScatterPlanAssetLoader {
         Box::pin(async move {
             let mut bytes = Vec::new();
             reader.read_to_end(&mut bytes).await?;
-            let asset: ScatterPlanAsset =
-                ron::de::from_bytes(&bytes).map_err(|e| anyhow::anyhow!(e))?;
-            Ok(asset)
+            #[cfg(feature = "ron")]
+            {
+                let asset: ScatterPlanAsset =
+                    ron::de::from_bytes(&bytes).map_err(|e| anyhow::anyhow!(e))?;
+                Ok(asset)
+            }
+            #[cfg(not(feature = "ron"))]
+            {
+                let _ = bytes;
+                Err(anyhow::anyhow!(
+                    "bevy_map_scatter: enable the `ron` feature to load .scatter assets"
+                ))
+            }
         })
     }
 }

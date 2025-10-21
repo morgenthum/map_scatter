@@ -1,6 +1,6 @@
 [package]
 name = "map_scatter"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
@@ -13,16 +13,19 @@ categories = ["algorithms", "game-development", "game-engines", "graphics"]
 readme = "README.md"
 exclude = ["benches/**"]
 
+[features]
+default = []
+serde = ["dep:serde"]
+
 [dependencies]
 glam = { version = "0.30", features = ["mint"] }
 mint = "0.5"
 rand = "0.9"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
 tracing = "0.1"
 thiserror = "2.0"
 
 [dev-dependencies]
-serde_json = "1.0"
 criterion = { version = "0.7", features = ["html_reports"] }
 
 [[bench]]

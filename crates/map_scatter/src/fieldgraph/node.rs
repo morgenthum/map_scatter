@@ -2,20 +2,24 @@
 //!
 //! This module defines the data model for field nodes used by the field graph
 //! subsystem. Each [`NodeSpec`] represents a typed operation in a DAG.
+
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::texture::TextureChannel;
 use crate::fieldgraph::FieldId;
 
 /// Parameters for a constant value node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct ConstantParams {
     /// The constant value.
     pub value: f32,
 }
 
 /// Parameters for a texture sampling node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct TextureParams {
     /// The ID of the texture to sample from.
     pub texture_id: String,
@@ -24,7 +28,8 @@ pub struct TextureParams {
 }
 
 /// Parameters for a clamp node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct ClampParams {
     /// Minimum value to clamp to.
     pub min: f32,
@@ -33,7 +38,8 @@ pub struct ClampParams {
 }
 
 /// Parameters for a smoothstep node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct SmoothStepParams {
     /// Lower edge of the transition.
     pub edge0: f32,
@@ -42,21 +48,24 @@ pub struct SmoothStepParams {
 }
 
 /// Parameters for a scale node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct ScaleParams {
     /// Scaling factor.
     pub factor: f32,
 }
 
 /// Parameters for a power node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct PowParams {
     /// Exponent value.
     pub exp: f32,
 }
 
 /// Parameters for an EDT normalize node.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub struct EdtNormalizeParams {
     /// Threshold value to avoid division by zero.
     pub threshold: f32,
@@ -65,7 +74,8 @@ pub struct EdtNormalizeParams {
 }
 
 /// Specification of a node in the field graph.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug)]
 pub enum NodeSpec {
     Constant {
         params: ConstantParams,

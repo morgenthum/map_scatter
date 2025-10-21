@@ -1,12 +1,14 @@
 //! Specification types for authoring field graphs.
 use std::collections::HashMap;
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::fieldgraph::{FieldId, NodeSpec};
 
 /// A specification of a field graph, including nodes and their semantics.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct FieldGraphSpec {
     pub nodes: HashMap<FieldId, NodeSpec>,
@@ -40,7 +42,8 @@ impl FieldGraphSpec {
 }
 
 /// The semantics of a field node, indicating its role in the field graph.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FieldSemantics {
     Gate,

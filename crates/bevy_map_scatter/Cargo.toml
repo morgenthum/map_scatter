@@ -1,6 +1,6 @@
 [package]
 name = "bevy_map_scatter"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
@@ -12,6 +12,11 @@ keywords = ["bevy", "gamedev", "map-generation", "procedural", "sampling"]
 categories = ["algorithms", "game-development", "game-engines", "graphics"]
 readme = "README.md"
 
+[features]
+default = ["serde", "ron"]
+serde = ["dep:serde", "map_scatter/serde"]
+ron = ["dep:ron", "serde"]
+
 [dependencies]
 bevy = { default-features = false, version = "0.17", features = [
     "bevy_asset",
@@ -21,8 +26,8 @@ bevy = { default-features = false, version = "0.17", features = [
 ] }
 map_scatter = { workspace = true }
 rand = "0.9"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
 glam = "0.30"
-ron = "0.10"
+ron = { version = "0.10", optional = true }
 anyhow = "1"
 crossbeam-channel = "0.5"
