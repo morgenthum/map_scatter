@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install toolchain (clippy, stable)
         uses: dtolnay/rust-toolchain@stable
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
