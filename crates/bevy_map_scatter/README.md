@@ -50,7 +50,7 @@ Add the crates to a Bevy application:
 ```toml
 # Cargo.toml
 [dependencies]
-bevy = "0.17"
+bevy = "0.18"
 bevy_map_scatter = "0.2"
 map_scatter = "0.2"
 ```
@@ -171,4 +171,5 @@ Run the application with `cargo run`. After the scatter job completes, a summary
 
 | `bevy_map_scatter` | `map_scatter` | `bevy` |
 | ------------------ | ------------- | ------ |
+| `0.3`              | `0.2`         | `0.18` |
 | `0.2`              | `0.2`         | `0.17` |

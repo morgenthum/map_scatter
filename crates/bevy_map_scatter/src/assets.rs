@@ -221,6 +221,7 @@ fn sampling_runtime(def: &SamplingDef) -> Box<dyn PositionSampling> {
 }
 
 /// Asset loader for [`ScatterPlanAsset`] using RON files with `.scatter` extension.
+#[derive(TypePath)]
 pub struct ScatterPlanAssetLoader;
 
 impl AssetLoader for ScatterPlanAssetLoader {
