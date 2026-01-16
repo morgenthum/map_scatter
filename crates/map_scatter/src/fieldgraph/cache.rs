@@ -10,39 +10,54 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::sync::{Arc, RwLock};
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::fieldgraph::compiler::{CompileOptions, FieldGraphCompiler};
 use crate::fieldgraph::FieldProgram;
 use crate::prelude::{FieldGraphSpec, FieldSemantics, NodeSpec, TextureChannel};
 use crate::scatter::{Kind, KindId};
 
 struct ProgramEntry {
-    program: FieldProgram,
+    program: Arc<FieldProgram>,
     fingerprint: u64,
 }
 
 /// Cache for compiled field programs, keyed by [`KindId`] and invalidated by specification fingerprint.
+/// This cache is thread-safe and can be shared across runs.
 pub struct FieldProgramCache {
-    entries: HashMap<KindId, ProgramEntry>,
+    entries: RwLock<HashMap<KindId, ProgramEntry>>,
 }
 
 impl FieldProgramCache {
     /// Creates a new, empty cache.
     pub fn new() -> Self {
         Self {
-            entries: HashMap::new(),
+            entries: RwLock::new(HashMap::new()),
         }
     }
 
-    /// Gets a reference to the compiled program for the given [`KindId`], if it exists in the cache.
-    pub fn get_for_kind(&self, kind_id: KindId) -> Option<&FieldProgram> {
-        self.entries.get(&kind_id).map(|e| &e.program)
+    /// Gets the compiled program for the given [`KindId`], if it exists in the cache.
+    pub fn get_for_kind(&self, kind_id: &KindId) -> Option<Arc<FieldProgram>> {
+        let entries = self
+            .entries
+            .read()
+            .expect("FieldProgramCache lock poisoned");
+        entries.get(kind_id).map(|e| e.program.clone())
     }
 
     /// Inserts a compiled program into the cache with the given [`KindId`] and specification fingerprint.
-    pub fn insert(&mut self, kind_id: KindId, fingerprint: u64, program: FieldProgram) {
-        self.entries.insert(
+    pub fn insert(&self, kind_id: KindId, fingerprint: u64, program: FieldProgram) {
+        self.insert_arc(kind_id, fingerprint, Arc::new(program));
+    }
+
+    /// Inserts a compiled program into the cache with the given [`KindId`] and specification fingerprint.
+    pub fn insert_arc(&self, kind_id: KindId, fingerprint: u64, program: Arc<FieldProgram>) {
+        let mut entries = self
+            .entries
+            .write()
+            .expect("FieldProgramCache lock poisoned");
+        entries.insert(
             kind_id,
             ProgramEntry {
                 fingerprint,
@@ -52,37 +67,58 @@ impl FieldProgramCache {
     }
 
     /// Removes the compiled program for the given [`KindId`] from the cache, returning it if it existed.
-    pub fn remove(&mut self, kind_id: KindId) -> Option<FieldProgram> {
-        self.entries.remove(&kind_id).map(|e| e.program)
+    pub fn remove(&self, kind_id: &KindId) -> Option<Arc<FieldProgram>> {
+        let mut entries = self
+            .entries
+            .write()
+            .expect("FieldProgramCache lock poisoned");
+        entries.remove(kind_id).map(|e| e.program)
     }
 
     /// Clears all entries from the cache.
-    pub fn clear(&mut self) {
-        self.entries.clear();
+    pub fn clear(&self) {
+        let mut entries = self
+            .entries
+            .write()
+            .expect("FieldProgramCache lock poisoned");
+        entries.clear();
     }
 
     /// Gets the compiled program for the given [`Kind`], compiling and caching it if necessary.
-    pub fn get_or_compile<'a>(
-        &'a mut self,
-        kind: &Kind,
-        opts: &CompileOptions,
-    ) -> Result<&'a FieldProgram> {
+    pub fn get_or_compile(&self, kind: &Kind, opts: &CompileOptions) -> Result<Arc<FieldProgram>> {
         let key = &kind.id;
         let fp = fingerprint(&kind.spec, opts);
 
-        let needs_compile = match self.entries.get(key) {
-            Some(entry) => entry.fingerprint != fp,
-            None => true,
-        };
-
-        if needs_compile {
-            let program = FieldGraphCompiler::compile(&kind.spec, opts)?;
-            self.insert(key.clone(), fp, program);
+        {
+            let entries = self
+                .entries
+                .read()
+                .expect("FieldProgramCache lock poisoned");
+            if let Some(entry) = entries.get(key) {
+                if entry.fingerprint == fp {
+                    return Ok(entry.program.clone());
+                }
+            }
         }
 
-        match self.entries.get(key) {
-            Some(entry) => Ok(&entry.program),
-            None => Err(Error::Other("Entry missing after insert".to_string())),
+        let program = Arc::new(FieldGraphCompiler::compile(&kind.spec, opts)?);
+
+        let mut entries = self
+            .entries
+            .write()
+            .expect("FieldProgramCache lock poisoned");
+        match entries.get(key) {
+            Some(entry) if entry.fingerprint == fp => Ok(entry.program.clone()),
+            _ => {
+                entries.insert(
+                    key.clone(),
+                    ProgramEntry {
+                        program: program.clone(),
+                        fingerprint: fp,
+                    },
+                );
+                Ok(program)
+            }
         }
     }
 }
@@ -205,74 +241,88 @@ mod tests {
 
     #[test]
     fn caches_and_returns_compiled_programs() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let kind = kind_with_constant("tree", 0.5);
         let program = cache
             .get_or_compile(&kind, &CompileOptions::default())
             .expect("compile succeeds");
 
-        assert_eq!(constant_from_program(program), 0.5);
-        assert!(cache.get_for_kind(kind.id.clone()).is_some());
+        assert_eq!(constant_from_program(program.as_ref()), 0.5);
+        assert!(cache.get_for_kind(&kind.id).is_some());
 
         // Removing should drop the entry.
-        let removed = cache.remove(kind.id.clone());
+        let removed = cache.remove(&kind.id);
         assert!(removed.is_some());
-        assert!(cache.get_for_kind(kind.id.clone()).is_none());
+        assert!(cache.get_for_kind(&kind.id).is_none());
 
         // Reinserting via insert works as well.
         let opts = CompileOptions::default();
         let program = FieldGraphCompiler::compile(&kind.spec, &opts).unwrap();
         cache.insert(kind.id.clone(), fingerprint(&kind.spec, &opts), program);
-        assert!(cache.get_for_kind(kind.id.clone()).is_some());
+        assert!(cache.get_for_kind(&kind.id).is_some());
     }
 
     #[test]
     fn recompiles_when_spec_fingerprint_changes() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
 
         let kind_v1 = kind_with_constant("rock", 0.3);
         let program_v1 = cache
             .get_or_compile(&kind_v1, &CompileOptions::default())
             .expect("first compile succeeds");
-        assert_eq!(constant_from_program(program_v1), 0.3);
+        assert_eq!(constant_from_program(program_v1.as_ref()), 0.3);
 
         let kind_v2 = kind_with_constant("rock", 0.9);
         let program_v2 = cache
             .get_or_compile(&kind_v2, &CompileOptions::default())
             .expect("second compile succeeds");
-        assert_eq!(constant_from_program(program_v2), 0.9);
+        assert_eq!(constant_from_program(program_v2.as_ref()), 0.9);
     }
 
     #[test]
     fn clear_removes_all_entries() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
 
         let kind = kind_with_constant("bush", 0.2);
         cache
             .get_or_compile(&kind, &CompileOptions::default())
             .expect("compile succeeds");
-        assert!(cache.get_for_kind(kind.id.clone()).is_some());
+        assert!(cache.get_for_kind(&kind.id).is_some());
 
         cache.clear();
-        assert!(cache.get_for_kind(kind.id.clone()).is_none());
+        assert!(cache.get_for_kind(&kind.id).is_none());
     }
 
     #[test]
     fn recompiles_when_compile_options_change() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let kind = kind_with_constant("grass", 0.5);
 
         let opts_a = CompileOptions::default();
         let program_a = cache
             .get_or_compile(&kind, &opts_a)
             .expect("initial compile succeeds");
-        assert!(!program_a.nodes.get("prob").expect("node exists").force_bake);
+        assert!(
+            !program_a
+                .as_ref()
+                .nodes
+                .get("prob")
+                .expect("node exists")
+                .force_bake
+        );
 
         let mut opts_b = CompileOptions::default();
         opts_b.force_bake.insert("prob".into());
         let program_b = cache
             .get_or_compile(&kind, &opts_b)
             .expect("force bake compile succeeds");
-        assert!(program_b.nodes.get("prob").expect("node exists").force_bake);
+        assert!(
+            program_b
+                .as_ref()
+                .nodes
+                .get("prob")
+                .expect("node exists")
+                .force_bake
+        );
     }
 }

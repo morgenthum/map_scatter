@@ -82,7 +82,7 @@ Add the dependency:
 
 ```toml
 [dependencies]
-map_scatter = "0.2"
+map_scatter = "0.3"
 rand = "0.9"
 glam = { version = "0.30", features = ["mint"] }
 mint = "0.5"
@@ -120,7 +120,7 @@ fn main() {
     let plan = Plan::new().with_layer(layer);
 
     // 4) Prepare runtime
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let textures = TextureRegistry::new(); // Register textures as needed
     let cfg = RunConfig::new(Vec2::new(100.0, 100.0))
         .with_chunk_extent(32.0)
@@ -129,7 +129,7 @@ fn main() {
 
     // 5) Run
     let mut rng = StdRng::seed_from_u64(42);
-    let mut runner = ScatterRunner::new(cfg, &textures, &mut cache);
+    let mut runner = ScatterRunner::new(cfg, &textures, &cache);
     let result = runner.run(&plan, &mut rng);
 
     println!(
@@ -148,12 +148,12 @@ use rand::{SeedableRng, rngs::StdRng};
 use map_scatter::prelude::*;
 
 fn run_with_events(plan: &Plan) {
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let textures = TextureRegistry::new();
     let cfg = RunConfig::new(glam::Vec2::new(64.0, 64.0));
     let mut rng = StdRng::seed_from_u64(7);
 
-    let mut runner = ScatterRunner::new(cfg, &textures, &mut cache);
+    let mut runner = ScatterRunner::new(cfg, &textures, &cache);
 
     // Capture events for inspection (warnings, per-position evaluations, overlays, etc.)
     let mut sink = VecSink::new();

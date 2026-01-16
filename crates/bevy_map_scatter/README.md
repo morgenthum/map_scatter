@@ -17,7 +17,7 @@ Provides data-driven object scattering for Bevy: populate worlds with many small
 - Asynchronous execution: runs scatter jobs on `AsyncComputeTaskPool`.
 - ECS-friendly: placements become entities; components can be attached for rendering, gameplay, or tooling.
 - Streaming helper: manage chunked scatter around moving anchors (optional plugin).
-- Diagnostics: forward core events as Bevy messages (`ScatterMessage`, `ScatterFinished`).
+- Diagnostics: forward core events as Bevy messages (`ScatterMessage`, `ScatterFinished`) with configurable filtering.
 
 ## Use cases
 
@@ -52,8 +52,8 @@ Add the crates to a Bevy application:
 # Cargo.toml
 [dependencies]
 bevy = "0.18"
-bevy_map_scatter = "0.2"
-map_scatter = "0.2"
+bevy_map_scatter = "0.3"
+map_scatter = "0.3"
 ```
 
 Create a scatter plan in `assets/simple.scatter`:

@@ -21,9 +21,9 @@ fn main() -> anyhow::Result<()> {
         .with_raster_cell_size(1.0)
         .with_grid_halo(2);
 
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let mut rng = StdRng::seed_from_u64(123);
-    let mut runner = ScatterRunner::try_new(config, &textures, &mut cache)?;
+    let mut runner = ScatterRunner::try_new(config, &textures, &cache)?;
     let result = runner.run(&plan, &mut rng);
     render(&result)?;
     Ok(())

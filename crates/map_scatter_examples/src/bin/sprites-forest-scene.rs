@@ -91,9 +91,9 @@ fn main() {
         .with_raster_cell_size(1.0)
         .with_grid_halo(3);
 
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let mut rng = StdRng::seed_from_u64(42);
-    let mut runner = ScatterRunner::try_new(config, &textures, &mut cache).expect("valid config");
+    let mut runner = ScatterRunner::try_new(config, &textures, &cache).expect("valid config");
     let result = runner.run(&plan, &mut rng);
 
     let mut rc = RenderConfig::new(image_size, domain_extent).with_background([210, 215, 220]);

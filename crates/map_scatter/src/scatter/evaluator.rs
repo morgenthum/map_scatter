@@ -5,6 +5,7 @@
 //! into a [`FieldProgram`], identifies fields by [`crate::fieldgraph::spec::FieldSemantics`],
 //! and samples values through a [`FieldRuntime`].
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use glam::Vec2;
 
@@ -28,7 +29,7 @@ pub struct KindEvaluation {
 }
 
 struct KindInfo {
-    program: FieldProgram,
+    program: Arc<FieldProgram>,
     gate_fields: Vec<String>,
     probability_field: Option<String>,
 }
@@ -40,7 +41,7 @@ pub struct Evaluator {
 
 impl Evaluator {
     /// Creates a new evaluator by compiling the field graphs of the given kinds.
-    pub fn new(kinds: &[Kind], cache: &mut FieldProgramCache) -> Result<Self> {
+    pub fn new(kinds: &[Kind], cache: &FieldProgramCache) -> Result<Self> {
         let mut kind_info = HashMap::new();
         let opts = CompileOptions::default();
 
@@ -246,12 +247,12 @@ mod tests {
 
     #[test]
     fn evaluator_applies_gate_and_probability() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let kinds = vec![
             kind_allowed("allowed", 1.0, Some(0.6)),
             kind_allowed("blocked", 0.0, Some(0.9)),
         ];
-        let evaluator = Evaluator::new(&kinds, &mut cache).expect("build evaluator");
+        let evaluator = Evaluator::new(&kinds, &cache).expect("build evaluator");
 
         let results = evaluator.evaluate_position(
             Vec2::ZERO,
@@ -273,9 +274,9 @@ mod tests {
 
     #[test]
     fn evaluator_defaults_probability_when_missing() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let kinds = vec![kind_allowed("no_prob", 1.0, None)];
-        let evaluator = Evaluator::new(&kinds, &mut cache).expect("build evaluator");
+        let evaluator = Evaluator::new(&kinds, &cache).expect("build evaluator");
 
         let results = evaluator.evaluate_positions_batched(
             &[Vec2::ZERO, Vec2::new(1.0, 0.0)],
@@ -294,10 +295,10 @@ mod tests {
 
     #[test]
     fn evaluate_kind_returns_single_result() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let kind = kind_allowed("single", 1.0, Some(0.3));
         let evaluator =
-            Evaluator::new(std::slice::from_ref(&kind), &mut cache).expect("build evaluator");
+            Evaluator::new(std::slice::from_ref(&kind), &cache).expect("build evaluator");
 
         let result = evaluator
             .evaluate_kind(

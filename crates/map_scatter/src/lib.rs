@@ -27,7 +27,7 @@ pub mod prelude {
     pub use crate::scatter::chunk::seed_for_chunk;
     pub use crate::scatter::events::{
         AsEventSink, EventSink, FnSink, KindEvaluationLite, MultiSink, OverlaySummary,
-        ScatterEvent, VecSink,
+        ScatterEvent, ScatterEventKind, VecSink,
     };
     pub use crate::scatter::overlay::OverlayTexture;
     pub use crate::scatter::plan::{Layer, Plan, SelectionStrategy};

@@ -182,7 +182,7 @@ fn main() -> anyhow::Result<()> {
         .with_raster_cell_size(1.0)
         .with_grid_halo(2);
 
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let mut rng = StdRng::seed_from_u64(42);
 
     // Run nearest
@@ -191,7 +191,7 @@ fn main() -> anyhow::Result<()> {
         vec![nearest_kind],
         Box::new(PoissonDiskSampling::new(2.4)),
     ));
-    let mut runner = ScatterRunner::try_new(config, &textures, &mut cache)?;
+    let mut runner = ScatterRunner::try_new(config, &textures, &cache)?;
     let nearest_result = runner.run(&nearest_plan, &mut rng);
     render_nearest(&nearest_result, domain_extent)?;
 

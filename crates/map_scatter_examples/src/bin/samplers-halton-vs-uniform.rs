@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
 
     // Reproducible RNG
     let mut rng = StdRng::seed_from_u64(42);
@@ -31,7 +31,7 @@ fn main() -> anyhow::Result<()> {
         vec![kind.clone()],
         Box::new(HaltonSampling::with_rotation(count, true).with_start_index(1)),
     ));
-    let mut runner_halton = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_halton = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_halton = runner_halton.run(&plan_halton, &mut rng);
     let _ = render_simple(
         &result_halton,
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
         vec![kind],
         Box::new(UniformRandomSampling::new(count)),
     ));
-    let mut runner_uniform = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_uniform = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_uniform = runner_uniform.run(&plan_uniform, &mut rng);
     let _ = render_simple(
         &result_uniform,

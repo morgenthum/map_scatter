@@ -9,6 +9,19 @@ use glam::Vec2;
 use crate::scatter::runner::{Placement, RunConfig, RunResult};
 use crate::scatter::KindId;
 
+/// Types of events emitted during scatter runs.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ScatterEventKind {
+    RunStarted,
+    RunFinished,
+    LayerStarted,
+    LayerFinished,
+    PositionEvaluated,
+    PlacementMade,
+    OverlayGenerated,
+    Warning,
+}
+
 /// Describes events emitted by scatter operations.
 #[non_exhaustive]
 #[derive(Debug, Clone)]
@@ -96,6 +109,21 @@ pub enum ScatterEvent {
     },
 }
 
+impl ScatterEvent {
+    pub fn kind(&self) -> ScatterEventKind {
+        match self {
+            ScatterEvent::RunStarted { .. } => ScatterEventKind::RunStarted,
+            ScatterEvent::RunFinished { .. } => ScatterEventKind::RunFinished,
+            ScatterEvent::LayerStarted { .. } => ScatterEventKind::LayerStarted,
+            ScatterEvent::LayerFinished { .. } => ScatterEventKind::LayerFinished,
+            ScatterEvent::PositionEvaluated { .. } => ScatterEventKind::PositionEvaluated,
+            ScatterEvent::PlacementMade { .. } => ScatterEventKind::PlacementMade,
+            ScatterEvent::OverlayGenerated { .. } => ScatterEventKind::OverlayGenerated,
+            ScatterEvent::Warning { .. } => ScatterEventKind::Warning,
+        }
+    }
+}
+
 /// Lightweight evaluation summary for a single kind at a position.
 #[derive(Debug, Clone)]
 pub struct KindEvaluationLite {
@@ -136,8 +164,13 @@ impl OverlaySummary {
 }
 
 /// A generic event sink that accepts [`ScatterEvent`]s.
+/// Override [`EventSink::wants`] to skip building events you do not need.
 pub trait EventSink {
     fn send(&mut self, event: ScatterEvent);
+
+    fn wants(&self, _kind: ScatterEventKind) -> bool {
+        true
+    }
 
     fn send_many<I>(&mut self, events: I)
     where
@@ -154,6 +187,10 @@ pub trait EventSink {
 impl EventSink for () {
     #[inline]
     fn send(&mut self, _event: ScatterEvent) {}
+
+    fn wants(&self, _kind: ScatterEventKind) -> bool {
+        false
+    }
 }
 
 /// An event sink that forwards to a user-provided closure.
@@ -266,11 +303,26 @@ impl<S: EventSink> EventSink for MultiSink<S> {
         if self.sinks.is_empty() {
             return;
         }
-        let last_idx = self.sinks.len() - 1;
-        for i in 0..last_idx {
-            self.sinks[i].send(event.clone());
+        let kind = event.kind();
+        let mut indices: Vec<usize> = self
+            .sinks
+            .iter()
+            .enumerate()
+            .filter(|(_, sink)| sink.wants(kind))
+            .map(|(idx, _)| idx)
+            .collect();
+        if indices.is_empty() {
+            return;
+        }
+        let last_idx = indices.pop().expect("indices not empty");
+        for idx in indices {
+            self.sinks[idx].send(event.clone());
         }
         self.sinks[last_idx].send(event);
+    }
+
+    fn wants(&self, kind: ScatterEventKind) -> bool {
+        self.sinks.iter().any(|sink| sink.wants(kind))
     }
 }
 

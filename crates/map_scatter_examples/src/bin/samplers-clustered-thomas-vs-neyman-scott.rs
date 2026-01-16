@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
 
     // Reproducible RNG
     let mut rng = StdRng::seed_from_u64(42);
@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
             sigma,
         )),
     ));
-    let mut runner_thomas = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_thomas = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_thomas = runner_thomas.run(&plan_thomas, &mut rng);
     render_simple(
         &result_thomas,
@@ -64,7 +64,7 @@ fn main() -> anyhow::Result<()> {
             radius,
         )),
     ));
-    let mut runner_ns = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_ns = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_ns = runner_ns.run(&plan_ns, &mut rng);
     render_simple(
         &result_ns,

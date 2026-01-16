@@ -5,6 +5,7 @@
 //! into [`Raster`]s aligned to a [`ChunkGrid`].
 //! It also integrates texture inputs through [`TextureRegistry`].
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use glam::Vec2;
 use tracing::warn;
@@ -16,7 +17,7 @@ use crate::fieldgraph::{ChunkGrid, ChunkId, FieldId, NodeSpec, Raster, TextureRe
 /// Runtime for evaluating field programs, managing textures and baked rasters.
 pub struct FieldRuntime<'a> {
     /// Compiled program used for evaluation.
-    pub program: FieldProgram,
+    pub program: Arc<FieldProgram>,
     /// Texture registry used for sampling texture nodes.
     pub textures: &'a TextureRegistry,
     baked_rasters: HashMap<(FieldId, ChunkId), Raster>,
@@ -24,7 +25,7 @@ pub struct FieldRuntime<'a> {
 
 impl<'a> FieldRuntime<'a> {
     /// Create a new field runtime with the given program and texture registry.
-    pub fn new(program: FieldProgram, textures: &'a TextureRegistry) -> Self {
+    pub fn new(program: Arc<FieldProgram>, textures: &'a TextureRegistry) -> Self {
         Self {
             program,
             textures,
@@ -292,7 +293,7 @@ mod tests {
         let mut textures = TextureRegistry::new();
         textures.register("const", ConstTexture(0.8));
 
-        let mut runtime = FieldRuntime::new(program, &textures);
+        let mut runtime = FieldRuntime::new(Arc::new(program), &textures);
         let grid = grid();
         let chunk = ChunkId(0, 0);
 
@@ -320,7 +321,7 @@ mod tests {
             topo: Vec::new(),
         };
         let textures = TextureRegistry::new();
-        let mut runtime = FieldRuntime::new(program, &textures);
+        let mut runtime = FieldRuntime::new(Arc::new(program), &textures);
         let grid = grid();
         assert_eq!(
             runtime.sample("missing", Vec2::ZERO, ChunkId(0, 0), &grid),

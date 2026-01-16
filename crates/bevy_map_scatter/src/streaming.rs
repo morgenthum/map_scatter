@@ -1,12 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
+use bevy::asset::AssetEvent;
 use bevy::prelude::*;
+use bevy::transform::TransformSystems;
 use map_scatter::fieldgraph::ChunkId;
-use map_scatter::prelude::{seed_for_chunk, Placement, RunConfig};
+use map_scatter::prelude::{seed_for_chunk, KindId, Placement, RunConfig};
 
 use crate::{ScatterFinished, ScatterPlanAsset, ScatterRequest};
 
 /// Settings for streaming scatter chunks around an anchor entity.
+#[non_exhaustive]
 #[derive(Component, Clone)]
 pub struct ScatterStreamSettings {
     /// Scatter plan asset to execute per chunk.
@@ -25,6 +28,8 @@ pub struct ScatterStreamSettings {
     pub grid_halo: usize,
     /// Offset applied to the anchor position when choosing the focus.
     pub focus_offset: Vec2,
+    /// Maximum number of new chunks spawned per frame.
+    pub max_new_chunks_per_frame: usize,
 }
 
 impl ScatterStreamSettings {
@@ -44,6 +49,7 @@ impl ScatterStreamSettings {
             raster_cell_size: 1.0,
             grid_halo: 2,
             focus_offset: Vec2::ZERO,
+            max_new_chunks_per_frame: usize::MAX,
         }
     }
 
@@ -66,9 +72,15 @@ impl ScatterStreamSettings {
         self.focus_offset = focus_offset;
         self
     }
+
+    pub fn with_max_new_chunks_per_frame(mut self, max_new_chunks_per_frame: usize) -> Self {
+        self.max_new_chunks_per_frame = max_new_chunks_per_frame;
+        self
+    }
 }
 
 /// Chunk tracking for streaming state on an anchor entity.
+#[non_exhaustive]
 #[derive(Component, Default)]
 pub struct ScatterStreamChunks(
     /// Map from chunk id to spawned chunk entity.
@@ -76,6 +88,7 @@ pub struct ScatterStreamChunks(
 );
 
 /// Component added to each spawned chunk root.
+#[non_exhaustive]
 #[derive(Component, Debug, Clone)]
 pub struct ScatterStreamChunk {
     /// Anchor entity that owns this chunk.
@@ -87,15 +100,17 @@ pub struct ScatterStreamChunk {
 }
 
 /// Component added to each spawned placement entity.
+#[non_exhaustive]
 #[derive(Component, Debug, Clone)]
 pub struct ScatterStreamPlacement {
     /// Kind identifier for this placement.
-    pub kind_id: String,
+    pub kind_id: KindId,
     /// World-space position of the placement.
     pub world_position: Vec2,
 }
 
 /// [`EntityEvent`] emitted when a streamed placement entity is spawned.
+#[non_exhaustive]
 #[derive(EntityEvent, Debug, Clone)]
 pub struct ScatterStreamPlaced {
     /// Entity spawned for the placement.
@@ -113,7 +128,11 @@ pub struct MapScatterStreamingPlugin;
 
 impl Plugin for MapScatterStreamingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, update_streams)
+        app.add_message::<AssetEvent<ScatterPlanAsset>>()
+            .add_systems(
+                PostUpdate,
+                update_streams.after(TransformSystems::Propagate),
+            )
             .add_observer(handle_scatter_finished);
     }
 }
@@ -121,13 +140,27 @@ impl Plugin for MapScatterStreamingPlugin {
 fn update_streams(
     mut commands: Commands,
     assets: Res<Assets<ScatterPlanAsset>>,
+    mut plan_events: MessageReader<AssetEvent<ScatterPlanAsset>>,
     mut anchors: Query<(
         Entity,
         &GlobalTransform,
-        &ScatterStreamSettings,
+        Ref<ScatterStreamSettings>,
         Option<&mut ScatterStreamChunks>,
     )>,
 ) {
+    let mut changed_plans = HashSet::new();
+    for event in plan_events.read() {
+        match *event {
+            AssetEvent::Added { id }
+            | AssetEvent::Modified { id }
+            | AssetEvent::Removed { id }
+            | AssetEvent::LoadedWithDependencies { id }
+            | AssetEvent::Unused { id } => {
+                changed_plans.insert(id);
+            }
+        }
+    }
+
     for (anchor_entity, transform, settings, chunks_opt) in anchors.iter_mut() {
         let Some(mut chunks) = chunks_opt else {
             commands
@@ -135,6 +168,13 @@ fn update_streams(
                 .insert(ScatterStreamChunks::default());
             continue;
         };
+
+        if settings.is_changed() || changed_plans.contains(&settings.plan.id()) {
+            for &entity in chunks.0.values() {
+                commands.entity(entity).despawn();
+            }
+            chunks.0.clear();
+        }
 
         if assets.get(&settings.plan).is_none() {
             continue;
@@ -152,12 +192,25 @@ fn update_streams(
         let center_chunk = world_to_chunk_id_centered(focus, settings.chunk_size);
         let view = IVec2::new(settings.view_radius.x.max(0), settings.view_radius.y.max(0));
 
-        let mut desired = HashSet::new();
+        let span_x = view.x.saturating_mul(2).saturating_add(1) as usize;
+        let span_y = view.y.saturating_mul(2).saturating_add(1) as usize;
+        let expected = span_x.saturating_mul(span_y);
+        let mut desired = HashSet::with_capacity(expected);
+        let mut desired_list = Vec::with_capacity(expected);
         for dy in -view.y..=view.y {
             for dx in -view.x..=view.x {
-                desired.insert(center_chunk + IVec2::new(dx, dy));
+                let chunk_id = center_chunk + IVec2::new(dx, dy);
+                desired.insert(chunk_id);
+                desired_list.push(chunk_id);
             }
         }
+
+        desired_list.sort_by_key(|chunk_id| {
+            let delta = *chunk_id - center_chunk;
+            let dist =
+                i64::from(delta.x) * i64::from(delta.x) + i64::from(delta.y) * i64::from(delta.y);
+            (dist, delta.y, delta.x)
+        });
 
         let mut to_remove = Vec::new();
         for (&chunk_id, &entity) in chunks.0.iter() {
@@ -170,7 +223,11 @@ fn update_streams(
             chunks.0.remove(&chunk_id);
         }
 
-        for chunk_id in desired {
+        let mut spawned = 0usize;
+        for chunk_id in desired_list {
+            if spawned >= settings.max_new_chunks_per_frame {
+                break;
+            }
             if chunks.0.contains_key(&chunk_id) {
                 continue;
             }
@@ -199,6 +256,7 @@ fn update_streams(
                 .id();
 
             chunks.0.insert(chunk_id, chunk_entity);
+            spawned += 1;
 
             let seed = seed_for_chunk(settings.seed, ChunkId(chunk_id.x, chunk_id.y));
             commands.trigger(ScatterRequest::new(
@@ -266,7 +324,11 @@ mod tests {
 
     fn setup_app() -> (App, Entity, Vec2) {
         let mut app = App::new();
-        app.add_systems(Update, update_streams);
+        app.add_message::<AssetEvent<ScatterPlanAsset>>();
+        app.add_systems(
+            PostUpdate,
+            update_streams.after(TransformSystems::Propagate),
+        );
 
         let mut assets = Assets::<ScatterPlanAsset>::default();
         let plan = assets.add(ScatterPlanAsset { layers: Vec::new() });

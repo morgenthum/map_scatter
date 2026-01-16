@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let mut rng = StdRng::seed_from_u64(42);
 
     // Compare two variants:
@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
 
     // Run pure grid
     let plan_grid = build_plan(0.0, cell_size);
-    let mut runner_grid = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_grid = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_grid = runner_grid.run(&plan_grid, &mut rng);
     render_simple(
         &result_grid,
@@ -36,7 +36,7 @@ fn main() -> anyhow::Result<()> {
 
     // Run jittered grid
     let plan_jitter = build_plan(1.0, cell_size);
-    let mut runner_jitter = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_jitter = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_jitter = runner_jitter.run(&plan_jitter, &mut rng);
     render_simple(
         &result_jitter,

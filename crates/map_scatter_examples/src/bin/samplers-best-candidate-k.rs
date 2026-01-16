@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()> {
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
 
     // Reproducible RNG
     let mut rng = StdRng::seed_from_u64(42);
@@ -32,7 +32,7 @@ fn main() -> anyhow::Result<()> {
         vec![kind.clone()],
         Box::new(BestCandidateSampling::new(count, k_low)),
     ));
-    let mut runner_low = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_low = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_low = runner_low.run(&plan_low, &mut rng);
     render_simple(
         &result_low,
@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
         vec![kind],
         Box::new(BestCandidateSampling::new(count, k_high)),
     ));
-    let mut runner_high = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_high = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_high = runner_high.run(&plan_high, &mut rng);
     render_simple(
         &result_high,

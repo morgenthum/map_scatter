@@ -1,7 +1,7 @@
 //! Bevy plugin for map_scatter providing assets, resources, message types, and systems.
 #![forbid(unsafe_code)]
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 pub use assets::{
     SamplingDef, ScatterKindDef, ScatterLayerDef, ScatterPlanAsset, ScatterPlanAssetLoader,
@@ -9,7 +9,7 @@ pub use assets::{
 };
 use bevy::prelude::*;
 use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
-pub use events::{ChannelSink, ScatterBus, ScatterMessage};
+pub use events::{ChannelSink, ScatterBus, ScatterBusConfig, ScatterEventFilter, ScatterMessage};
 use map_scatter::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -32,7 +32,9 @@ pub mod prelude {
         ParentDef, SamplingDef, ScatterKindDef, ScatterLayerDef, ScatterPlanAsset,
         ScatterPlanAssetLoader, SelectionStrategyDef,
     };
-    pub use crate::events::{ChannelSink, ScatterBus, ScatterMessage};
+    pub use crate::events::{
+        ChannelSink, ScatterBus, ScatterBusConfig, ScatterEventFilter, ScatterMessage,
+    };
     pub use crate::streaming::{
         MapScatterStreamingPlugin, ScatterStreamChunk, ScatterStreamChunks, ScatterStreamPlaced,
         ScatterStreamPlacement, ScatterStreamSettings,
@@ -58,17 +60,18 @@ impl Default for ScatterTextureRegistry {
     }
 }
 
-/// Shared field program cache. It is protected by a mutex to allow async jobs to reuse programs.
+/// Shared field program cache used by async jobs.
 #[derive(Resource, Clone)]
-struct ScatterCache(pub Arc<Mutex<FieldProgramCache>>);
+struct ScatterCache(pub Arc<FieldProgramCache>);
 
 impl Default for ScatterCache {
     fn default() -> Self {
-        Self(Arc::new(Mutex::new(FieldProgramCache::new())))
+        Self(Arc::new(FieldProgramCache::new()))
     }
 }
 
 /// A request to run a scatter plan (by asset handle) with a configuration and RNG seed.
+#[non_exhaustive]
 #[derive(EntityEvent)]
 pub struct ScatterRequest {
     /// Entity used to track the request.
@@ -105,6 +108,7 @@ struct ScatterJob {
 }
 
 /// [`EntityEvent`] triggered when a scatter run has finished.
+#[non_exhaustive]
 #[derive(EntityEvent, Clone)]
 pub struct ScatterFinished {
     /// Entity associated with the original request.
@@ -118,6 +122,7 @@ impl Plugin for MapScatterPlugin {
         app.add_message::<ScatterMessage>()
             .init_asset::<ScatterPlanAsset>()
             .init_asset_loader::<ScatterPlanAssetLoader>()
+            .init_resource::<ScatterBusConfig>()
             .init_resource::<ScatterBus>()
             .init_resource::<ScatterTextureRegistry>()
             .init_resource::<ScatterCache>()
@@ -136,8 +141,17 @@ fn spawn_scatter_job(
     assets: Res<Assets<ScatterPlanAsset>>,
 ) {
     let pool = AsyncComputeTaskPool::get();
-    let tx = bus.as_ref().tx.clone();
+    let tx = bus.sender().clone();
+    let filter = bus.filter().clone();
     let entity = request.entity;
+
+    if let Err(err) = request.config.validate() {
+        warn!(
+            "ScatterRequest config invalid for {:?}: {}",
+            request.entity, err
+        );
+        return;
+    }
 
     let Some(plan) = assets.get(&request.plan) else {
         error!("ScatterPlanAsset not loaded yet: {:?}", request.plan);
@@ -151,6 +165,7 @@ fn spawn_scatter_job(
     let textures = textures.0.clone();
     let cache = cache.0.clone();
     let tx = tx.clone();
+    let filter = filter.clone();
 
     // Spawn async job returning the RunResult
     let task = pool.spawn(async move {
@@ -160,13 +175,15 @@ fn spawn_scatter_job(
         let mut sink = ChannelSink {
             request: entity,
             tx,
+            filter,
         };
 
-        // Use cache with a short-lived lock for runner lifetime
-        let mut cache_guard = cache.lock().expect("ScatterCache mutex poisoned");
-        let mut runner = ScatterRunner::new(config.clone(), &textures, &mut cache_guard);
+        let Ok(mut runner) = ScatterRunner::try_new(config.clone(), &textures, cache.as_ref())
+        else {
+            warn!("Scatter runner failed to initialize for {:?}", entity);
+            return RunResult::new();
+        };
         let result = runner.run_with_events(&plan, &mut rng, &mut sink);
-        drop(cache_guard);
 
         result
     });
@@ -181,7 +198,7 @@ fn poll_scatter_jobs(mut commands: Commands, mut job_query: Query<(Entity, &mut 
     for (entity, mut job) in job_query.iter_mut() {
         if let Some(task) = job.task.take() {
             if task.is_finished() {
-                let result = block_on(task).clone();
+                let result = block_on(task);
 
                 // Remove job component when done.
                 commands.entity(entity).remove::<ScatterJob>();
@@ -195,12 +212,8 @@ fn poll_scatter_jobs(mut commands: Commands, mut job_query: Query<(Entity, &mut 
     }
 }
 
-fn drain_scatter_messages(
-    mut bus: ResMut<ScatterBus>,
-    mut messages: ResMut<Messages<ScatterMessage>>,
-) {
-    let bus = bus.as_mut();
-    while let Ok(message) = bus.rx.try_recv() {
+fn drain_scatter_messages(bus: Res<ScatterBus>, mut messages: ResMut<Messages<ScatterMessage>>) {
+    while let Ok(message) = bus.receiver().try_recv() {
         messages.write(message);
     }
 }
