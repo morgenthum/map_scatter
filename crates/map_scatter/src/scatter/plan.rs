@@ -70,6 +70,7 @@ impl Layer {
 #[derive(Default)]
 #[non_exhaustive]
 pub struct Plan {
+    /// Ordered list of layers in this plan.
     pub layers: Vec<Layer>,
 }
 

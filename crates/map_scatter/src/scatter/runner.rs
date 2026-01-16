@@ -14,7 +14,7 @@ use crate::fieldgraph::runtime::FieldRuntime;
 use crate::fieldgraph::{ChunkId, TextureRegistry};
 use crate::scatter::evaluator::KindEvaluation;
 use crate::scatter::events::{EventSink, OverlaySummary, ScatterEvent};
-use crate::scatter::overlay::{build_overlay_mask_from_positions, OverlayTexture};
+use crate::scatter::overlay::{build_overlay_mask_from_positions_in_domain, OverlayTexture};
 use crate::scatter::plan::{Layer, Plan, SelectionStrategy};
 use crate::scatter::selection::{pick_highest_probability, pick_weighted_random};
 use crate::scatter::{chunk, Kind, KindId, DEFAULT_PROBABILITY_WHEN_MISSING};
@@ -22,7 +22,9 @@ use crate::scatter::{chunk, Kind, KindId, DEFAULT_PROBABILITY_WHEN_MISSING};
 /// Represents a placed instance of a kind at a specific position.
 #[derive(Debug, Clone)]
 pub struct Placement {
+    /// Kind identifier for this placement.
     pub kind_id: KindId,
+    /// World/domain position of the placement.
     pub position: Vec2,
 }
 
@@ -30,9 +32,15 @@ pub struct Placement {
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct RunConfig {
+    /// Size of the evaluated domain in world units.
     pub domain_extent: Vec2,
+    /// World-space center of the evaluated domain.
+    pub domain_center: Vec2,
+    /// Chunk size used for evaluation in world units.
     pub chunk_extent: f32,
+    /// Raster cell size used for field sampling in world units.
     pub raster_cell_size: f32,
+    /// Extra halo cells around each chunk for filters and EDT.
     pub grid_halo: usize,
 }
 
@@ -40,6 +48,7 @@ impl Default for RunConfig {
     fn default() -> Self {
         Self {
             domain_extent: Vec2::new(0.0, 0.0),
+            domain_center: Vec2::ZERO,
             chunk_extent: 100.0,
             raster_cell_size: 1.0,
             grid_halo: 2,
@@ -52,6 +61,7 @@ impl RunConfig {
     pub fn new(domain_extent: Vec2) -> Self {
         Self {
             domain_extent,
+            domain_center: Vec2::ZERO,
             ..Default::default()
         }
     }
@@ -59,6 +69,12 @@ impl RunConfig {
     /// Sets the chunk extent.
     pub fn with_chunk_extent(mut self, chunk_extent: f32) -> Self {
         self.chunk_extent = chunk_extent;
+        self
+    }
+
+    /// Sets the domain center in world coordinates.
+    pub fn with_domain_center(mut self, domain_center: Vec2) -> Self {
+        self.domain_center = domain_center;
         self
     }
 
@@ -96,8 +112,11 @@ impl RunConfig {
 #[non_exhaustive]
 #[derive(Debug, Clone, Default)]
 pub struct RunResult {
+    /// Placements produced by the run.
     pub placements: Vec<Placement>,
+    /// Total candidate positions evaluated.
     pub positions_evaluated: usize,
+    /// Total candidate positions rejected.
     pub positions_rejected: usize,
 }
 
@@ -119,8 +138,11 @@ impl RunResult {
 }
 
 pub struct ScatterRunner<'a> {
+    /// Run configuration applied to this runner.
     pub config: RunConfig,
+    /// Shared texture registry used during evaluation.
     pub base_textures: &'a TextureRegistry,
+    /// Program cache used to reuse compiled field graphs.
     pub cache: &'a mut FieldProgramCache,
 }
 
@@ -293,6 +315,7 @@ fn run_layer_with_events_internal<R: RngCore>(
     }
 
     let domain_extent = ctx.config.domain_extent;
+    let domain_center = ctx.config.domain_center;
 
     let opts = CompileOptions::default();
     let mut kind_info: Vec<(Kind, FieldProgram, Vec<String>, Option<String>)> = Vec::new();
@@ -363,7 +386,11 @@ fn run_layer_with_events_internal<R: RngCore>(
     }
 
     let positions_mint = layer.sampling.generate(domain_extent.into(), rng);
-    let positions: Vec<Vec2> = positions_mint.into_iter().map(Vec2::from).collect();
+    let positions: Vec<Vec2> = positions_mint
+        .into_iter()
+        .map(Vec2::from)
+        .map(|p| p + domain_center)
+        .collect();
 
     let mut layer_textures =
         TextureRegistry::with_capacity(ctx.base_textures.len() + ctx.overlays.len());
@@ -377,9 +404,10 @@ fn run_layer_with_events_internal<R: RngCore>(
 
     let mut placed: Vec<Placement> = Vec::new();
     for position in positions.iter().copied() {
-        let (chunk, grid) = chunk::chunk_id_and_grid_for_position_centered(
+        let (chunk, grid) = chunk::chunk_id_and_grid_for_position_in_domain(
             position,
             domain_extent,
+            domain_center,
             ctx.config.chunk_extent,
             ctx.config.raster_cell_size,
             ctx.config.grid_halo,
@@ -497,8 +525,9 @@ fn run_layer_with_events_internal<R: RngCore>(
             });
             None
         } else {
-            let mask = build_overlay_mask_from_positions(
+            let mask = build_overlay_mask_from_positions_in_domain(
                 domain_extent,
+                domain_center,
                 &placed.iter().map(|p| p.position).collect::<Vec<_>>(),
                 mask_w,
                 mask_h,

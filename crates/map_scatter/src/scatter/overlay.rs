@@ -6,17 +6,30 @@ use crate::fieldgraph::{Texture, TextureChannel};
 /// A 2D overlay texture with a single red channel.
 #[derive(Clone)]
 pub struct OverlayTexture {
+    /// Size of the overlay domain in world units.
     pub domain_extent: Vec2,
+    /// World-space center of the overlay domain.
+    pub domain_center: Vec2,
+    /// Overlay texture width in pixels.
     pub width: u32,
+    /// Overlay texture height in pixels.
     pub height: u32,
+    /// Red channel data in row-major order.
     pub data_r: Vec<f32>,
 }
 
 impl OverlayTexture {
     /// Create a new [`OverlayTexture`].
-    pub fn new(domain_extent: Vec2, width: u32, height: u32, data_r: Vec<f32>) -> Self {
+    pub fn new(
+        domain_extent: Vec2,
+        domain_center: Vec2,
+        width: u32,
+        height: u32,
+        data_r: Vec<f32>,
+    ) -> Self {
         Self {
             domain_extent,
+            domain_center,
             width,
             height,
             data_r,
@@ -33,13 +46,14 @@ impl OverlayTexture {
             };
         }
 
+        let local = p - self.domain_center;
         let u = if self.domain_extent.x != 0.0 {
-            ((p.x / self.domain_extent.x) + 0.5).clamp(0.0, 1.0)
+            ((local.x / self.domain_extent.x) + 0.5).clamp(0.0, 1.0)
         } else {
             0.5
         };
         let v = if self.domain_extent.y != 0.0 {
-            ((p.y / self.domain_extent.y) + 0.5).clamp(0.0, 1.0)
+            ((local.y / self.domain_extent.y) + 0.5).clamp(0.0, 1.0)
         } else {
             0.5
         };
@@ -71,8 +85,27 @@ pub fn build_overlay_mask_from_positions(
     height: u32,
     stamp_radius_px: i32,
 ) -> OverlayTexture {
+    build_overlay_mask_from_positions_in_domain(
+        domain_extent,
+        Vec2::ZERO,
+        positions,
+        width,
+        height,
+        stamp_radius_px,
+    )
+}
+
+pub fn build_overlay_mask_from_positions_in_domain(
+    domain_extent: Vec2,
+    domain_center: Vec2,
+    positions: &[Vec2],
+    width: u32,
+    height: u32,
+    stamp_radius_px: i32,
+) -> OverlayTexture {
     build_overlay_mask_from_positions_with_shape(
         domain_extent,
+        domain_center,
         positions,
         width,
         height,
@@ -82,6 +115,7 @@ pub fn build_overlay_mask_from_positions(
 
 pub fn build_overlay_mask_from_positions_with_shape(
     domain_extent: Vec2,
+    domain_center: Vec2,
     positions: &[Vec2],
     width: u32,
     height: u32,
@@ -89,20 +123,21 @@ pub fn build_overlay_mask_from_positions_with_shape(
 ) -> OverlayTexture {
     let len = (width as usize) * (height as usize);
     if len == 0 {
-        return OverlayTexture::new(domain_extent, width, height, Vec::new());
+        return OverlayTexture::new(domain_extent, domain_center, width, height, Vec::new());
     }
     let mut data = vec![0.0f32; len];
     let w_i = width as i32;
     let h_i = height as i32;
 
     for &position in positions {
+        let local = position - domain_center;
         let u = if domain_extent.x != 0.0 {
-            ((position.x / domain_extent.x) + 0.5).clamp(0.0, 1.0)
+            ((local.x / domain_extent.x) + 0.5).clamp(0.0, 1.0)
         } else {
             0.5
         };
         let v = if domain_extent.y != 0.0 {
-            ((position.y / domain_extent.y) + 0.5).clamp(0.0, 1.0)
+            ((local.y / domain_extent.y) + 0.5).clamp(0.0, 1.0)
         } else {
             0.5
         };
@@ -135,7 +170,7 @@ pub fn build_overlay_mask_from_positions_with_shape(
         }
     }
 
-    OverlayTexture::new(domain_extent, width, height, data)
+    OverlayTexture::new(domain_extent, domain_center, width, height, data)
 }
 
 #[cfg(test)]
@@ -144,14 +179,20 @@ mod tests {
 
     #[test]
     fn sample_domain_handles_empty_texture() {
-        let overlay = OverlayTexture::new(Vec2::ZERO, 0, 0, Vec::new());
+        let overlay = OverlayTexture::new(Vec2::ZERO, Vec2::ZERO, 0, 0, Vec::new());
         assert_eq!(overlay.sample_domain(TextureChannel::R, Vec2::ZERO), 0.0);
         assert_eq!(overlay.sample_domain(TextureChannel::A, Vec2::ZERO), 1.0);
     }
 
     #[test]
     fn sample_domain_reads_r_channel() {
-        let overlay = OverlayTexture::new(Vec2::new(2.0, 2.0), 2, 2, vec![0.0, 0.5, 0.75, 1.0]);
+        let overlay = OverlayTexture::new(
+            Vec2::new(2.0, 2.0),
+            Vec2::ZERO,
+            2,
+            2,
+            vec![0.0, 0.5, 0.75, 1.0],
+        );
         assert_eq!(
             overlay.sample_domain(TextureChannel::R, Vec2::new(-1.0, -1.0)),
             0.0
@@ -172,8 +213,14 @@ mod tests {
 
     #[test]
     fn build_overlay_mask_sets_pixels() {
-        let texture =
-            build_overlay_mask_from_positions(Vec2::new(2.0, 2.0), &[Vec2::ZERO], 2, 2, 0);
+        let texture = build_overlay_mask_from_positions_in_domain(
+            Vec2::new(2.0, 2.0),
+            Vec2::ZERO,
+            &[Vec2::ZERO],
+            2,
+            2,
+            0,
+        );
         assert_eq!(texture.data_r.iter().filter(|v| **v > 0.0).count(), 1);
     }
 }

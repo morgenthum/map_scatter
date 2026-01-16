@@ -16,6 +16,7 @@ Provides data-driven object scattering for Bevy: populate worlds with many small
 - Texture integration: snapshot Bevy `Image`s to CPU textures with configurable domain mapping.
 - Asynchronous execution: runs scatter jobs on `AsyncComputeTaskPool`.
 - ECS-friendly: placements become entities; components can be attached for rendering, gameplay, or tooling.
+- Streaming helper: manage chunked scatter around moving anchors (optional plugin).
 - Diagnostics: forward core events as Bevy messages (`ScatterMessage`, `ScatterFinished`).
 
 ## Use cases
@@ -166,6 +167,16 @@ fn log_finished(finished: On<ScatterFinished>, mut commands: Commands) {
 ```
 
 Run the application with `cargo run`. After the scatter job completes, a summary appears in the log; continue with placement logic as needed.
+
+## Streaming (optional)
+
+For moving worlds or endless maps, use `MapScatterStreamingPlugin` and attach
+`ScatterStreamSettings` to an anchor entity. The plugin will spawn/despawn chunks
+around the anchor and emit placement entities tagged with `ScatterStreamPlacement`.
+
+## Alternatives
+
+- [`bevy_feronia`](https://github.com/NicoZweifel/bevy_feronia): more opinionated, art-focused scattering with built-in wind/material/LOD workflows; likely a better fit if you want an end-to-end visual pipeline rather than a low-level, data-driven scatter core.
 
 ## Compatibility
 

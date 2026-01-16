@@ -15,7 +15,9 @@ use crate::fieldgraph::{ChunkGrid, ChunkId, FieldId, NodeSpec, Raster, TextureRe
 
 /// Runtime for evaluating field programs, managing textures and baked rasters.
 pub struct FieldRuntime<'a> {
+    /// Compiled program used for evaluation.
     pub program: FieldProgram,
+    /// Texture registry used for sampling texture nodes.
     pub textures: &'a TextureRegistry,
     baked_rasters: HashMap<(FieldId, ChunkId), Raster>,
 }

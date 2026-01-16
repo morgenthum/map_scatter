@@ -1,0 +1,49 @@
+site_name: map_scatter
+site_description: Rule-based object scattering for games and tools.
+site_url: https://morgenthum.github.io/map_scatter/
+repo_url: https://github.com/morgenthum/map_scatter
+repo_name: morgenthum/map_scatter
+edit_uri: edit/main/docs/
+
+nav:
+  - Home: index.md
+  - Getting Started: quickstart.md
+  - Concepts: concepts.md
+  - Guides:
+      - Bevy Integration: bevy.md
+  - Architecture: architecture.md
+  - Reference: reference.md
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+  font:
+    text: Space Mono
+    code: Fira Code
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true

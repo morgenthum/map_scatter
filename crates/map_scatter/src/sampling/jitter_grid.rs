@@ -8,9 +8,7 @@ use crate::sampling::{next_down, rand01, PositionSampling};
 /// Jittered grid sampling.
 #[derive(Debug, Clone)]
 pub struct JitterGridSampling {
-    /// Jitter amount in the range [0, 1].
-    /// 0 = no jitter (grid centers)
-    /// 1 = max jitter (cell extents).
+    /// Jitter amount in [0, 1], where 0 is grid centers and 1 is max jitter.
     pub jitter: f32,
     /// Cell size for the grid.
     pub cell_size: f32,

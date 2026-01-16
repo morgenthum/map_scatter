@@ -8,7 +8,9 @@ use super::grid::ChunkGrid;
 /// A raster grid with floating point values and a chunk grid for spatial reference.
 #[derive(Clone, Debug)]
 pub struct Raster {
+    /// Chunk grid that defines the raster domain and resolution.
     pub grid: ChunkGrid,
+    /// Raster data stored in row-major order (including halo).
     pub data: Vec<f32>,
 }
 

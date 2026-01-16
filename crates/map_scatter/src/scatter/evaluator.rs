@@ -19,8 +19,11 @@ use crate::scatter::{Kind, DEFAULT_PROBABILITY_WHEN_MISSING};
 /// Result of evaluating a [`Kind`] at a position.
 #[derive(Debug, Clone)]
 pub struct KindEvaluation {
+    /// Kind being evaluated.
     pub kind: Kind,
+    /// Whether all gate fields passed for this position.
     pub allowed: bool,
+    /// Final probability weight in [0, 1] used for selection.
     pub weight: f32,
 }
 

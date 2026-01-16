@@ -8,9 +8,7 @@ use crate::sampling::{next_down, rand01, PositionSampling};
 /// Hexagonally-staggered jittered grid sampling.
 #[derive(Debug, Clone)]
 pub struct HexJitterGridSampling {
-    /// Jitter amount in the range [0, 1].
-    /// 0 = no jitter (perfect lattice)
-    /// 1 = max jitter (up to half the local spacing in each axis)
+    /// Jitter amount in [0, 1], where 0 is a perfect lattice and 1 is max jitter.
     pub jitter: f32,
     /// Base spacing along X for centers on the same row.
     pub cell_size: f32,

@@ -99,9 +99,11 @@ pub enum ScatterEvent {
 /// Lightweight evaluation summary for a single kind at a position.
 #[derive(Debug, Clone)]
 pub struct KindEvaluationLite {
+    /// Kind identifier for this evaluation.
     pub kind_id: KindId,
+    /// Whether all gate fields passed for this position.
     pub allowed: bool,
-    /// Final probability/weight in \[0,1\] used for selection.
+    /// Final selection weight in [0, 1].
     pub weight: f32,
 }
 

@@ -190,6 +190,7 @@ fn run_with_events(plan: &Plan) {
   ```
 - Start simple: one kind with a constant Probability field, then introduce gates/overlays.
 - Tune `RunConfig`:
+  - `domain_center`: shift the evaluated window in world space (useful for streaming chunks)
   - `chunk_extent`: larger chunks reduce overhead but can increase evaluation cost
   - `raster_cell_size`: smaller cells improve accuracy at higher cost
   - `grid_halo`: extra cells for filters/EDT at chunk borders

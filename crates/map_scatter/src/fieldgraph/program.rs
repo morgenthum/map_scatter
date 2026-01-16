@@ -11,9 +11,13 @@ pub use crate::fieldgraph::{FieldId, NodeSpec};
 /// Metadata about a node in the field program.
 #[derive(Clone, Debug)]
 pub struct NodeMeta {
+    /// Field id for this node.
     pub id: FieldId,
+    /// Node specification for this field.
     pub spec: NodeSpec,
+    /// Whether this node should be baked into a raster.
     pub force_bake: bool,
+    /// Optional semantic tag for this field.
     pub semantics: Option<FieldSemantics>,
 }
 
@@ -34,6 +38,8 @@ impl NodeMeta {
 /// A field program, consisting of nodes and their topological order.
 #[derive(Clone, Debug)]
 pub struct FieldProgram {
+    /// Node metadata keyed by field id.
     pub nodes: HashMap<FieldId, NodeMeta>,
+    /// Topological order of node evaluation.
     pub topo: Vec<FieldId>,
 }

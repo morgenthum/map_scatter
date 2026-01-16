@@ -13,10 +13,15 @@ pub use events::{ChannelSink, ScatterBus, ScatterMessage};
 use map_scatter::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
+pub use streaming::{
+    MapScatterStreamingPlugin, ScatterStreamChunk, ScatterStreamChunks, ScatterStreamPlaced,
+    ScatterStreamPlacement, ScatterStreamSettings,
+};
 pub use textures::ImageTexture;
 
 mod assets;
 mod events;
+mod streaming;
 mod textures;
 
 /// Convenient re-exports for common types. Import with `use bevy_map_scatter::prelude::*;`.
@@ -28,6 +33,10 @@ pub mod prelude {
         ScatterPlanAssetLoader, SelectionStrategyDef,
     };
     pub use crate::events::{ChannelSink, ScatterBus, ScatterMessage};
+    pub use crate::streaming::{
+        MapScatterStreamingPlugin, ScatterStreamChunk, ScatterStreamChunks, ScatterStreamPlaced,
+        ScatterStreamPlacement, ScatterStreamSettings,
+    };
     pub use crate::textures::ImageTexture;
     pub use crate::{MapScatterPlugin, ScatterFinished, ScatterRequest, ScatterTextureRegistry};
 }
@@ -38,7 +47,10 @@ pub struct MapScatterPlugin;
 /// Shared texture registry (read-only) used by all runs.
 /// Register your textures at startup or via custom systems.
 #[derive(Resource, Clone)]
-pub struct ScatterTextureRegistry(pub Arc<TextureRegistry>);
+pub struct ScatterTextureRegistry(
+    /// Shared texture registry used by scatter runs.
+    pub Arc<TextureRegistry>,
+);
 
 impl Default for ScatterTextureRegistry {
     fn default() -> Self {
@@ -59,9 +71,13 @@ impl Default for ScatterCache {
 /// A request to run a scatter plan (by asset handle) with a configuration and RNG seed.
 #[derive(EntityEvent)]
 pub struct ScatterRequest {
+    /// Entity used to track the request.
     pub entity: Entity,
+    /// Handle to the scatter plan asset.
     pub plan: Handle<ScatterPlanAsset>,
+    /// Run configuration for this request.
     pub config: RunConfig,
+    /// RNG seed for deterministic scattering.
     pub seed: u64,
 }
 
@@ -91,7 +107,9 @@ struct ScatterJob {
 /// [`EntityEvent`] triggered when a scatter run has finished.
 #[derive(EntityEvent, Clone)]
 pub struct ScatterFinished {
+    /// Entity associated with the original request.
     pub entity: Entity,
+    /// Result produced by the scatter run.
     pub result: RunResult,
 }
 
