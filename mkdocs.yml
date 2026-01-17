@@ -1,6 +1,6 @@
 site_name: map_scatter
 site_description: Rule-based object scattering for games and tools.
-site_url: https://morgenthum.github.io/map_scatter/
+site_url: https://mapscatter.rs/
 repo_url: https://github.com/morgenthum/map_scatter
 repo_name: morgenthum/map_scatter
 edit_uri: edit/main/docs/
