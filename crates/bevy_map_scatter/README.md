@@ -178,5 +178,6 @@ around the anchor and emit placement entities tagged with `ScatterStreamPlacemen
 
 | `bevy_map_scatter` | `map_scatter` | `bevy` |
 | ------------------ | ------------- | ------ |
-| `0.3`              | `0.2`         | `0.18` |
+| `0.4`              | `0.4`         | `0.18` |
+| `0.3`              | `0.3`         | `0.17` |
 | `0.2`              | `0.2`         | `0.17` |
