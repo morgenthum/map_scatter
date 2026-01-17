@@ -19,6 +19,8 @@ use crate::scatter::plan::{Layer, Plan, SelectionStrategy};
 use crate::scatter::selection::{pick_highest_probability, pick_weighted_random};
 use crate::scatter::{chunk, Kind, KindId, DEFAULT_PROBABILITY_WHEN_MISSING};
 
+type KindInfo = (Kind, Arc<FieldProgram>, Vec<String>, Option<String>);
+
 /// Represents a placed instance of a kind at a specific position.
 #[derive(Debug, Clone)]
 pub struct Placement {
@@ -320,7 +322,7 @@ fn run_layer_with_events_internal<R: RngCore>(
     let domain_center = ctx.config.domain_center;
 
     let opts = CompileOptions::default();
-    let mut kind_info: Vec<(Kind, Arc<FieldProgram>, Vec<String>, Option<String>)> = Vec::new();
+    let mut kind_info: Vec<KindInfo> = Vec::new();
     // Emit layer start
     if sink.wants(ScatterEventKind::LayerStarted) {
         sink.send(ScatterEvent::LayerStarted {

@@ -183,9 +183,7 @@ fn spawn_scatter_job(
             warn!("Scatter runner failed to initialize for {:?}", entity);
             return RunResult::new();
         };
-        let result = runner.run_with_events(&plan, &mut rng, &mut sink);
-
-        result
+        runner.run_with_events(&plan, &mut rng, &mut sink)
     });
 
     // Attach job component to the entity

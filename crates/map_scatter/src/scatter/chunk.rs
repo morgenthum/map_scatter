@@ -126,7 +126,14 @@ pub fn make_chunk_grid_centered(
     halo: usize,
     idx: ChunkId,
 ) -> ChunkGrid {
-    make_chunk_grid_in_domain(domain_extent, Vec2::ZERO, chunk_size, raster_cell_size, halo, idx)
+    make_chunk_grid_in_domain(
+        domain_extent,
+        Vec2::ZERO,
+        chunk_size,
+        raster_cell_size,
+        halo,
+        idx,
+    )
 }
 
 /// Computes both the [`ChunkId`] and corresponding [`ChunkGrid`] for a given world position.
@@ -167,9 +174,8 @@ pub fn chunk_id_and_grid_for_position_in_domain(
 pub fn seed_for_chunk(base_seed: u64, chunk: ChunkId) -> u64 {
     let cx = chunk.0 as i64 as u64;
     let cy = chunk.1 as i64 as u64;
-    let mixed = base_seed
-        ^ cx.wrapping_mul(0x9E3779B97F4A7C15)
-        ^ cy.wrapping_mul(0xBF58476D1CE4E5B9);
+    let mixed =
+        base_seed ^ cx.wrapping_mul(0x9E3779B97F4A7C15) ^ cy.wrapping_mul(0xBF58476D1CE4E5B9);
     mix_u64(mixed)
 }
 

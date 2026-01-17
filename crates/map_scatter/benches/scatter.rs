@@ -74,14 +74,7 @@ fn bench_with_sampling(
     let mut group = c.benchmark_group(bench_name);
     // Preview a run to set meaningful throughput in "placements per iteration".
     let mut rng_preview = StdRng::seed_from_u64(0xD3ADB33F);
-    let preview = run_plan(
-        &plan,
-        &config,
-        &textures,
-        &cache,
-        &mut rng_preview,
-        None,
-    );
+    let preview = run_plan(&plan, &config, &textures, &cache, &mut rng_preview, None);
     let expected = preview.placements.len();
     group.throughput(common::elements_throughput(expected));
 
@@ -132,14 +125,7 @@ fn bench_with_sampling_params(
 
     // Preview a run to set meaningful throughput in "placements per iteration".
     let mut rng_preview = StdRng::seed_from_u64(0xFEEDFACE);
-    let preview = run_plan(
-        &plan,
-        &config,
-        &textures,
-        &cache,
-        &mut rng_preview,
-        None,
-    );
+    let preview = run_plan(&plan, &config, &textures, &cache, &mut rng_preview, None);
     let expected = preview.placements.len();
     group.throughput(common::elements_throughput(expected));
 

@@ -123,7 +123,7 @@ pub struct ScatterStreamPlaced {
     pub placement: Placement,
 }
 
-/// Plugin for streaming scatter chunks around anchor entities (requires [`MapScatterPlugin`]).
+/// Plugin for streaming scatter chunks around anchor entities (requires [`crate::MapScatterPlugin`]).
 pub struct MapScatterStreamingPlugin;
 
 impl Plugin for MapScatterStreamingPlugin {
