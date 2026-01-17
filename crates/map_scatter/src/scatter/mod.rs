@@ -18,7 +18,9 @@ pub type KindId = String;
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct Kind {
+    /// Unique identifier for this kind.
     pub id: KindId,
+    /// Field graph specification that drives placement rules.
     pub spec: FieldGraphSpec,
 }
 

@@ -298,7 +298,7 @@ mod tests {
         let mut textures = TextureRegistry::new();
         textures.register("mask_tex", MaskTexture);
 
-        let mut runtime = FieldRuntime::new(program, &textures);
+        let mut runtime = FieldRuntime::new(std::sync::Arc::new(program), &textures);
         let grid = ChunkGrid {
             origin_domain: Vec2::new(-1.0, 0.0),
             cell_size: 1.0,

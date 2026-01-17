@@ -1,0 +1,111 @@
+(
+  layers: [
+    (
+      id: "stars",
+      kinds: [
+        (
+          id: "star_small",
+          spec: (
+            nodes: {
+              "probability": Constant(
+                params: ConstantParams(value: 0.5),
+              ),
+            },
+            semantics: {
+              "probability": Probability,
+            },
+          ),
+        ),
+        (
+          id: "star_big",
+          spec: (
+            nodes: {
+              "probability": Constant(
+                params: ConstantParams(value: 0.35),
+              ),
+            },
+            semantics: {
+              "probability": Probability,
+            },
+          ),
+        ),
+      ],
+      sampling: Halton(
+        count: 260,
+        bases: (2, 3),
+        start_index: 0,
+        rotate: true,
+      ),
+      selection_strategy: WeightedRandom,
+    ),
+    (
+      id: "asteroids",
+      kinds: [
+        (
+          id: "asteroid",
+          spec: (
+            nodes: {
+              "probability": Constant(
+                params: ConstantParams(value: 0.65),
+              ),
+            },
+            semantics: {
+              "probability": Probability,
+            },
+          ),
+        ),
+      ],
+      sampling: PoissonDisk(
+        radius: 24.0,
+      ),
+      selection_strategy: WeightedRandom,
+    ),
+    (
+      id: "debris",
+      kinds: [
+        (
+          id: "debris",
+          spec: (
+            nodes: {
+              "probability": Constant(
+                params: ConstantParams(value: 0.5),
+              ),
+            },
+            semantics: {
+              "probability": Probability,
+            },
+          ),
+        ),
+      ],
+      sampling: ClusteredNeymanScott(
+        parents: Density(0.00035),
+        mean_children: 4.0,
+        radius: 16.0,
+        clamp_inside: true,
+      ),
+      selection_strategy: WeightedRandom,
+    ),
+    (
+      id: "comets",
+      kinds: [
+        (
+          id: "comet",
+          spec: (
+            nodes: {
+              "probability": Constant(
+                params: ConstantParams(value: 0.2),
+              ),
+            },
+            semantics: {
+              "probability": Probability,
+            },
+          ),
+        ),
+      ],
+      sampling: UniformRandom(
+        count: 16,
+      ),
+      selection_strategy: WeightedRandom,
+    ),
+  ],
+)

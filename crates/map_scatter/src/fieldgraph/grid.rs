@@ -6,15 +6,25 @@ use glam::Vec2;
 
 /// Identifier for a chunk in the chunk grid.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct ChunkId(pub i32, pub i32);
+pub struct ChunkId(
+    /// Chunk index along the X axis.
+    pub i32,
+    /// Chunk index along the Y axis.
+    pub i32,
+);
 
 /// Defines a 2D grid of cells with halo regions for chunked processing.
 #[derive(Clone, Debug)]
 pub struct ChunkGrid {
+    /// World-space origin of the chunk grid (lower-left corner).
     pub origin_domain: Vec2,
+    /// Cell size in world units.
     pub cell_size: f32,
+    /// Number of cells in X, excluding halo.
     pub width: usize,
+    /// Number of cells in Y, excluding halo.
     pub height: usize,
+    /// Halo cell count on each side.
     pub halo: usize,
 }
 

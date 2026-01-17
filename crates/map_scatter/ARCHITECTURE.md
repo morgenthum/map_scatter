@@ -1,36 +1,36 @@
 # Architecture
 
-- Purpose: Efficiently sample positions and evaluate them against a field-graph-based program to produce scatter data and auxiliary raster artifacts.
-- Design pillars: separation of orchestration vs. evaluation, explicit compilation step with caching, streaming/chunked runtime, and texture-backed field sampling.
+- Purpose: sample candidate positions and evaluate them against a field-graph program to produce placements and raster outputs.
+- Design: separate orchestration from evaluation, compile specs with caching, use chunked runtime, and sample textures through a registry.
 
 ## High-level Components
 
-At a glance, the system is organized into three functional areas:
+Main modules:
 
 - sampling
   - `PositionSampling` - produces candidate positions based on a configured sampling strategy.
 - scatter
-  - `ScatterRunner` - end-to-end orchestration entrypoint.
-  - `Plan` - bundle of strategy and layer configuration; selects a `Kind`.
-  - `Kind` - identifies the field-graph specification to be used for a scenario.
-  - `Evaluator` - resolves/compiles the program and evaluates positions.
+  - `ScatterRunner` - orchestration entry point.
+  - `Plan` - bundles strategy and layer configuration; selects a `Kind`.
+  - `Kind` - identifies which field-graph spec to use.
+  - `Evaluator` - compiles or fetches the program and evaluates positions.
 - fieldgraph
   - `FieldGraphSpec` - declarative description of fields and their relationships.
   - `FieldGraphCompiler` - turns a `Spec` into an executable `FieldProgram`.
   - `FieldProgram` - compiled representation consumed by the runtime.
   - `FieldRuntime` - interprets a `Program` over a spatial domain.
   - `TextureRegistry` - provides texture lookups to the runtime.
-  - `ChunkGrid / ChunkId` - partitions the domain for streaming evaluation.
-  - `Raster` - per-field, per-chunk baked results.
+  - `ChunkGrid / ChunkId` - partitions the domain for chunked evaluation.
+  - `Raster` - per-field, per-chunk baked values.
   - `FieldProgramCache` - caches compiled programs keyed by (`Kind`, options).
 
 ### Component Diagram
 
 ![Components](docs/components.svg)
 
-## End-to-End Flow
+## Flow
 
-1. Kickoff
+1. Plan and sample
    - A client asks `ScatterRunner` to run with a `KindId`, options, and base textures.
    - `ScatterRunner` builds a `Plan` (strategy + layers), selects the `Kind`, registers textures, and generates positions via `PositionSampling`.
 
@@ -40,7 +40,7 @@ At a glance, the system is organized into three functional areas:
      - Cache hit: reuse the existing `Program`.
      - Cache miss: `Compiler` reads the `Spec` for the `Kind` and emits a `Program`, which is stored in the cache.
 
-3. Runtime Interpretation
+3. Runtime
    - `Evaluator` creates a `FieldRuntime` with the `Program` and `Textures`.
    - The runtime iterates the domain chunk-by-chunk (`ChunkGrid`), evaluates each field in the `Program`, samples textures as needed, and bakes resulting values into `Raster` outputs.
 
@@ -76,7 +76,7 @@ At a glance, the system is organized into three functional areas:
 - Raster
   - Holds per-field, per-chunk baked values, useful as artifacts or inputs to downstream steps.
 
-## Data Model: Inputs and Outputs
+## Inputs and outputs
 
 - Inputs
   - `kindId` and evaluation options
@@ -86,7 +86,7 @@ At a glance, the system is organized into three functional areas:
   - Scatter results (positions with evaluated attributes)
   - Raster artifacts per field/chunk
 
-## Performance Considerations
+## Performance notes
 
 - Compilation caching
   - `FieldProgramCache` eliminates repeated compile work for the same (`Kind`, options) pair.
@@ -95,7 +95,7 @@ At a glance, the system is organized into three functional areas:
 - Texture-backed fields
   - Texture access is centralized through `TextureRegistry` for efficient reuse and sampling.
 
-## Extensibility
+## Extending
 
 - New Kind or Spec
   - Add/extend a `FieldGraphSpec`. The `Compiler` will generate a `FieldProgram` that the runtime can interpret.

@@ -11,25 +11,47 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("invalid configuration: {0}")]
-    InvalidConfig(String),
+    InvalidConfig(
+        /// Description of the invalid configuration.
+        String,
+    ),
 
     #[error("fieldgraph compile error: {0}")]
-    Compile(String),
+    Compile(
+        /// Description of the compile error.
+        String,
+    ),
 
     #[error("field runtime error: {0}")]
-    Runtime(String),
+    Runtime(
+        /// Description of the runtime error.
+        String,
+    ),
 
     #[error("missing texture '{id}'")]
-    MissingTexture { id: String },
+    MissingTexture {
+        /// Identifier of the missing texture.
+        id: String,
+    },
 
     #[error("unknown field '{id}'")]
-    UnknownField { id: String },
+    UnknownField {
+        /// Identifier of the unknown field.
+        id: String,
+    },
 
     #[error(transparent)]
-    Io(#[from] std::io::Error),
+    Io(
+        /// Source IO error.
+        #[from]
+        std::io::Error,
+    ),
 
     #[error("{0}")]
-    Other(String),
+    Other(
+        /// Generic error message.
+        String,
+    ),
 }
 
 impl From<String> for Error {

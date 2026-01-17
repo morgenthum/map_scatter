@@ -2,7 +2,7 @@
 name = "bevy_map_scatter"
 version = "0.3.0"
 edition = "2021"
-rust-version = "1.88"
+rust-version = "1.89"
 license = "MIT OR Apache-2.0"
 authors = ["Mario Morgenthum <mario.morgenthum@gmail.com>"]
 description = "Bevy plugin that integrates the `map_scatter` core crate for object scattering with field-graph evaluation and sampling"
@@ -18,7 +18,7 @@ serde = ["dep:serde", "map_scatter/serde"]
 ron = ["dep:ron", "serde"]
 
 [dependencies]
-bevy = { default-features = false, version = "0.17", features = [
+bevy = { default-features = false, version = "0.18", features = [
     "bevy_asset",
     "bevy_image",
     "bevy_log",

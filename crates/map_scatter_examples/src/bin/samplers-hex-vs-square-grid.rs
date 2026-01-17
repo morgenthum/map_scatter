@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let mut rng = StdRng::seed_from_u64(42);
 
     // Compare two structured samplers:
@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
         vec![kind.clone()],
         Box::new(HexJitterGridSampling::new(jitter, hex_cell)),
     ));
-    let mut runner_hex = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_hex = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_hex = runner_hex.run(&plan_hex, &mut rng);
     render_simple(
         &result_hex,
@@ -55,7 +55,7 @@ fn main() -> anyhow::Result<()> {
         vec![kind],
         Box::new(JitterGridSampling::new(jitter, square_cell)),
     ));
-    let mut runner_square = ScatterRunner::try_new(config.clone(), &textures, &mut cache)?;
+    let mut runner_square = ScatterRunner::try_new(config.clone(), &textures, &cache)?;
     let result_square = runner_square.run(&plan_square, &mut rng);
     render_simple(
         &result_square,

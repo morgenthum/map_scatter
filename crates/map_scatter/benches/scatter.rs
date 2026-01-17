@@ -69,7 +69,7 @@ fn bench_with_sampling(
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
 
     let mut group = c.benchmark_group(bench_name);
     // Preview a run to set meaningful throughput in "placements per iteration".
@@ -78,7 +78,7 @@ fn bench_with_sampling(
         &plan,
         &config,
         &textures,
-        &mut cache,
+        &cache,
         &mut rng_preview,
         None,
     );
@@ -89,7 +89,7 @@ fn bench_with_sampling(
         b.iter_batched(
             || StdRng::seed_from_u64(12345),
             |mut rng| {
-                let result = run_plan(&plan, &config, &textures, &mut cache, &mut rng, None);
+                let result = run_plan(&plan, &config, &textures, &cache, &mut rng, None);
 
                 black_box(result.positions_evaluated);
                 black_box(result.placements.len());
@@ -126,7 +126,7 @@ fn bench_with_sampling_params(
         .with_grid_halo(2);
 
     let textures = TextureRegistry::new();
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
 
     let mut group = c.benchmark_group(bench_name);
 
@@ -136,7 +136,7 @@ fn bench_with_sampling_params(
         &plan,
         &config,
         &textures,
-        &mut cache,
+        &cache,
         &mut rng_preview,
         None,
     );
@@ -147,7 +147,7 @@ fn bench_with_sampling_params(
         b.iter_batched(
             || StdRng::seed_from_u64(12345),
             |mut rng| {
-                let result = run_plan(&plan, &config, &textures, &mut cache, &mut rng, None);
+                let result = run_plan(&plan, &config, &textures, &cache, &mut rng, None);
                 black_box(result.positions_evaluated);
                 black_box(result.placements.len());
             },

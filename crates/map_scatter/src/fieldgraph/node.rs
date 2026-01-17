@@ -78,47 +78,65 @@ pub struct EdtNormalizeParams {
 #[derive(Clone, Debug)]
 pub enum NodeSpec {
     Constant {
+        /// Constant node parameters.
         params: ConstantParams,
     },
     Texture {
+        /// Texture sampling parameters.
         params: TextureParams,
     },
     Add {
+        /// Input field ids to sum.
         inputs: Vec<FieldId>,
     },
     Sub {
+        /// Input field ids to subtract in order.
         inputs: Vec<FieldId>,
     },
     Mul {
+        /// Input field ids to multiply.
         inputs: Vec<FieldId>,
     },
     Min {
+        /// Input field ids to take the minimum of.
         inputs: Vec<FieldId>,
     },
     Max {
+        /// Input field ids to take the maximum of.
         inputs: Vec<FieldId>,
     },
     Invert {
+        /// Input field id to invert.
         inputs: Vec<FieldId>,
     },
     Scale {
+        /// Input field ids to scale (first input used).
         inputs: Vec<FieldId>,
+        /// Scale operation parameters.
         params: ScaleParams,
     },
     Clamp {
+        /// Input field ids to clamp (first input used).
         inputs: Vec<FieldId>,
+        /// Clamp operation parameters.
         params: ClampParams,
     },
     SmoothStep {
+        /// Input field ids to smoothstep (first input used).
         inputs: Vec<FieldId>,
+        /// Smoothstep operation parameters.
         params: SmoothStepParams,
     },
     Pow {
+        /// Input field ids to exponentiate (first input used).
         inputs: Vec<FieldId>,
+        /// Exponentiation parameters.
         params: PowParams,
     },
     EdtNormalize {
+        /// Input field ids for EDT normalization (first input used).
         inputs: Vec<FieldId>,
+        /// EDT normalization parameters.
         params: EdtNormalizeParams,
     },
 }

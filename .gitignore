@@ -1,4 +1,5 @@
 .cargo/
+/site/
 /target
 
 .DS_Store

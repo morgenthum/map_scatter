@@ -145,9 +145,9 @@ fn evaluator_run_benches(c: &mut Criterion) {
         group.throughput(common::elements_throughput(throughput));
 
         {
-            let mut cache = FieldProgramCache::new();
+            let cache = FieldProgramCache::new();
             let kinds = make_kinds(type_count);
-            let evaluator = Evaluator::new(&kinds, &mut cache).expect("compile ok");
+            let evaluator = Evaluator::new(&kinds, &cache).expect("compile ok");
 
             group.bench_with_input(
                 BenchmarkId::new("simple", type_count),
@@ -169,9 +169,9 @@ fn evaluator_run_benches(c: &mut Criterion) {
         }
 
         {
-            let mut cache = FieldProgramCache::new();
+            let cache = FieldProgramCache::new();
             let kinds = make_kinds_complex(type_count);
-            let evaluator = Evaluator::new(&kinds, &mut cache).expect("compile ok");
+            let evaluator = Evaluator::new(&kinds, &cache).expect("compile ok");
 
             group.bench_with_input(
                 BenchmarkId::new("complex", type_count),
@@ -211,8 +211,8 @@ fn evaluator_compile_benches(c: &mut Criterion) {
             |b, _| {
                 b.iter_batched(
                     FieldProgramCache::new,
-                    |mut cache| {
-                        let eval = Evaluator::new(&types_simple, &mut cache).expect("compile ok");
+                    |cache| {
+                        let eval = Evaluator::new(&types_simple, &cache).expect("compile ok");
                         black_box(eval);
                     },
                     BatchSize::SmallInput,
@@ -226,8 +226,8 @@ fn evaluator_compile_benches(c: &mut Criterion) {
             |b, _| {
                 b.iter_batched(
                     FieldProgramCache::new,
-                    |mut cache| {
-                        let eval = Evaluator::new(&types_complex, &mut cache).expect("compile ok");
+                    |cache| {
+                        let eval = Evaluator::new(&types_complex, &cache).expect("compile ok");
                         black_box(eval);
                     },
                     BatchSize::SmallInput,
@@ -239,11 +239,11 @@ fn evaluator_compile_benches(c: &mut Criterion) {
             BenchmarkId::new("warm/simple", type_count),
             &type_count,
             |b, _| {
-                let mut cache = FieldProgramCache::new();
-                let _ = Evaluator::new(&types_simple, &mut cache).expect("compile ok");
+                let cache = FieldProgramCache::new();
+                let _ = Evaluator::new(&types_simple, &cache).expect("compile ok");
 
                 b.iter(|| {
-                    let eval = Evaluator::new(&types_simple, &mut cache).expect("compile ok");
+                    let eval = Evaluator::new(&types_simple, &cache).expect("compile ok");
                     black_box(eval);
                 });
             },
@@ -253,11 +253,11 @@ fn evaluator_compile_benches(c: &mut Criterion) {
             BenchmarkId::new("warm/complex", type_count),
             &type_count,
             |b, _| {
-                let mut cache = FieldProgramCache::new();
-                let _ = Evaluator::new(&types_complex, &mut cache).expect("compile ok");
+                let cache = FieldProgramCache::new();
+                let _ = Evaluator::new(&types_complex, &cache).expect("compile ok");
 
                 b.iter(|| {
-                    let eval = Evaluator::new(&types_complex, &mut cache).expect("compile ok");
+                    let eval = Evaluator::new(&types_complex, &cache).expect("compile ok");
                     black_box(eval);
                 });
             },
@@ -267,7 +267,7 @@ fn evaluator_compile_benches(c: &mut Criterion) {
             BenchmarkId::new("warm_change/simple", type_count),
             &type_count,
             |b, &_tc| {
-                let mut cache = FieldProgramCache::new();
+                let cache = FieldProgramCache::new();
                 let mut tick: u32 = 0;
 
                 b.iter_batched(
@@ -282,7 +282,7 @@ fn evaluator_compile_benches(c: &mut Criterion) {
                             .collect::<Vec<_>>()
                     },
                     |types| {
-                        let eval = Evaluator::new(&types, &mut cache).expect("compile ok");
+                        let eval = Evaluator::new(&types, &cache).expect("compile ok");
                         black_box(eval);
                     },
                     BatchSize::SmallInput,
@@ -294,7 +294,7 @@ fn evaluator_compile_benches(c: &mut Criterion) {
             BenchmarkId::new("warm_change/complex", type_count),
             &type_count,
             |b, &_tc| {
-                let mut cache = FieldProgramCache::new();
+                let cache = FieldProgramCache::new();
                 let mut tick: u32 = 0;
 
                 b.iter_batched(
@@ -309,7 +309,7 @@ fn evaluator_compile_benches(c: &mut Criterion) {
                             .collect::<Vec<_>>()
                     },
                     |types| {
-                        let eval = Evaluator::new(&types, &mut cache).expect("compile ok");
+                        let eval = Evaluator::new(&types, &cache).expect("compile ok");
                         black_box(eval);
                     },
                     BatchSize::SmallInput,

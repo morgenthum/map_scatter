@@ -7,6 +7,7 @@ struct PlanHandle(Handle<ScatterPlanAsset>);
 fn main() {
     App::new()
         .init_resource::<PlanHandle>()
+        .insert_resource(ScatterBusConfig::default().with_filter(ScatterEventFilter::verbose()))
         .add_plugins(DefaultPlugins)
         .add_plugins(MapScatterPlugin)
         .add_systems(Startup, load_assets)

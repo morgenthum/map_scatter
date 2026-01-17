@@ -11,7 +11,9 @@ use crate::fieldgraph::{FieldId, NodeSpec};
 #[derive(Clone, Debug, Default)]
 #[non_exhaustive]
 pub struct FieldGraphSpec {
+    /// Node definitions keyed by field id.
     pub nodes: HashMap<FieldId, NodeSpec>,
+    /// Semantic tags for fields (gate or probability).
     pub semantics: HashMap<FieldId, FieldSemantics>,
 }
 

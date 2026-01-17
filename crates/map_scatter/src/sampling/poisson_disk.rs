@@ -11,6 +11,7 @@ use crate::sampling::PositionSampling;
 /// Poisson disk sampling strategy.
 #[derive(Debug, Clone)]
 pub struct PoissonDiskSampling {
+    /// Minimum distance between samples in world units.
     pub radius: f32,
 }
 

@@ -15,12 +15,12 @@ Rule-based object scattering library with field-graph evaluation and sampling.
 
 ## How it works (short)
 
-You describe it in three simple parts:
+Three parts:
 - Fields (where things may appear): numbers per position built from textures, distances, and simple operations like thresholds or masks.
 - Sampling (how candidates are spread): Poisson disk/blue‑noise, jittered grid, low‑discrepancy (Halton), best‑candidate, clustered, etc.
 - Layers (in what order categories are placed): later layers can avoid or reuse earlier results via overlays/masks.
 
-Fields are compiled into a program and evaluated in chunks with caching for deterministic performance.
+Field graphs compile to a program and run in chunks with caching for stable results.
 
 Links:
 - Examples: https://github.com/morgenthum/map_scatter/blob/main/crates/map_scatter_examples/README.md
@@ -39,29 +39,17 @@ Links:
 
 ## Use cases
 
-map_scatter is for situations where you need to fill a 2D world (or a 2D projection of a 3D one) with many small things - plants, props, resources, decals - while keeping control over:
-- Where they can appear (rules, masks, gradients)
-- How dense or sparse each category is
-- How later layers react to earlier ones (avoid, blend, fill gaps)
-- Performance and determinism (repeatable seeds, chunked evaluation)
+Use map_scatter when you need to place many small items in a 2D domain (or a 2D projection of 3D) and still control:
+- placement rules (masks, thresholds, gradients)
+- density and spacing per kind
+- layer ordering and interaction
+- determinism and runtime cost
 
-Three examples:
+Examples:
 
-1. Open‑world survival (vegetation & resources)  
-   You want tall trees only on gentle ground, berry bushes in semi‑open spaces not too close to trees, and scattered herbs in any remaining gaps but never inside player paths. A single layered plan: trees first (sparse sampler), bushes next (jittered grid but excluding tree placements), herbs last (fill remaining probability). Change a moisture texture or tweak a threshold and regenerate instantly with the same seed for reproducible builds.
-
-2. City builder / settlement dressing  
-   You generate lamp posts along roads, then place decorative planters only where there is light coverage but not blocking intersections, and finally small clutter (crates, barrels) where neither lamp posts nor planters ended up. Each layer can produce an overlay mask the next one uses to stay out of the way - without manual adjustments after layout changes.
-
-3. Roguelike / dungeon population  
-   First pass: safe camp markers in wide rooms (uniform sampler filtered by room size). Second: enemy spawn points in other rooms but never within a radius of a camp overlay. Third: rare loot stashes in dead-end corridors with a low probability but guaranteed minimum spacing. Reroll with a different seed for variety while keeping consistent logic.
-
-Notes:
-- Express intention: "only near", "not inside", "prefer lighter areas" instead of hard-coded placement loops.
-- Iterate quickly: tweak thresholds, textures, or ordering and rerun.
-- Mix distribution styles without bespoke code per asset type.
-- Keep large worlds manageable: chunked evaluation avoids blowing up memory or frame time.
-- Deterministic builds: same seed + same inputs = identical placements.
+1. Open-world vegetation: trees first, bushes avoid trees, herbs fill gaps; tweak textures or thresholds and rerun with the same seed.
+2. City dressing: lamps along roads, planters in lit areas, clutter where space remains; overlays keep layers from colliding.
+3. Dungeon population: camps in large rooms, enemies avoid camps, rare loot in dead ends with minimum spacing.
 
 ## Examples
 
@@ -74,7 +62,7 @@ For a high-level architecture overview, see [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ## Status
 
-This crate is actively developed. The core APIs are designed to be practical and composable for real projects. Feedback and contributions are welcome.
+Active development; API may evolve between minor releases.
 
 ## Quick Start
 
@@ -82,7 +70,7 @@ Add the dependency:
 
 ```toml
 [dependencies]
-map_scatter = "0.2"
+map_scatter = "0.3"
 rand = "0.9"
 glam = { version = "0.30", features = ["mint"] }
 mint = "0.5"
@@ -120,7 +108,7 @@ fn main() {
     let plan = Plan::new().with_layer(layer);
 
     // 4) Prepare runtime
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let textures = TextureRegistry::new(); // Register textures as needed
     let cfg = RunConfig::new(Vec2::new(100.0, 100.0))
         .with_chunk_extent(32.0)
@@ -129,7 +117,7 @@ fn main() {
 
     // 5) Run
     let mut rng = StdRng::seed_from_u64(42);
-    let mut runner = ScatterRunner::new(cfg, &textures, &mut cache);
+    let mut runner = ScatterRunner::new(cfg, &textures, &cache);
     let result = runner.run(&plan, &mut rng);
 
     println!(
@@ -148,12 +136,12 @@ use rand::{SeedableRng, rngs::StdRng};
 use map_scatter::prelude::*;
 
 fn run_with_events(plan: &Plan) {
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let textures = TextureRegistry::new();
     let cfg = RunConfig::new(glam::Vec2::new(64.0, 64.0));
     let mut rng = StdRng::seed_from_u64(7);
 
-    let mut runner = ScatterRunner::new(cfg, &textures, &mut cache);
+    let mut runner = ScatterRunner::new(cfg, &textures, &cache);
 
     // Capture events for inspection (warnings, per-position evaluations, overlays, etc.)
     let mut sink = VecSink::new();
@@ -190,6 +178,7 @@ fn run_with_events(plan: &Plan) {
   ```
 - Start simple: one kind with a constant Probability field, then introduce gates/overlays.
 - Tune `RunConfig`:
+  - `domain_center`: shift the evaluated window in world space (useful for streaming chunks)
   - `chunk_extent`: larger chunks reduce overhead but can increase evaluation cost
   - `raster_cell_size`: smaller cells improve accuracy at higher cost
   - `grid_halo`: extra cells for filters/EDT at chunk borders

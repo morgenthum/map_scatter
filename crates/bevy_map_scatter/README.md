@@ -5,39 +5,40 @@
 [![Crate](https://img.shields.io/crates/v/bevy_map_scatter.svg)](https://crates.io/crates/bevy_map_scatter)
 [![Build Status](https://github.com/morgenthum/map_scatter/actions/workflows/ci.yml/badge.svg)](https://github.com/morgenthum/map_scatter/actions/workflows/ci.yml)
 
-Bevy plugin for rule-based object scattering: data-driven rules, multiple sampling strategies, and reproducible results - integrated with Assets and ECS.
+Bevy plugin for rule-based scattering with asset loading, async execution, and ECS-friendly results.
 
 ![logo](./logo.png)
 
 ## Features
 
-Provides data-driven object scattering for Bevy: populate worlds with many small entities using multiple sampling strategies - as assets, async, and ECS-friendly:
+Asset-driven scattering for Bevy with async execution and ECS-friendly results:
 - Asset-based authoring of scatter plans (RON): load `*.scatter` files via `AssetServer`.
 - Texture integration: snapshot Bevy `Image`s to CPU textures with configurable domain mapping.
 - Asynchronous execution: runs scatter jobs on `AsyncComputeTaskPool`.
 - ECS-friendly: placements become entities; components can be attached for rendering, gameplay, or tooling.
-- Diagnostics: forward core events as Bevy messages (`ScatterMessage`, `ScatterFinished`).
+- Streaming helper: manage chunked scatter around moving anchors (optional plugin).
+- Diagnostics: forward core events as Bevy messages (`ScatterMessage`, `ScatterFinished`) with configurable filtering.
 
 ## Use cases
 
-Populate a Bevy world with many small entities (plants, props, resources, decals) in a data‑driven, repeatable, and editor‑friendly workflow.
+Use cases: decorative dressing, resource distribution, or any placement driven by textures and rules.
 
-Provides:
-- Asset‑based plans can be hot‑reloaded
-- Fast iteration by tweaking textures/thresholds/layer order
-- Deterministic seeds (or per‑run variation) and async execution
+Workflow notes:
+- Plans are assets and can hot-reload
+- Tweak textures, thresholds, or layer order and rerun
+- Deterministic seeds by default; vary them per run when needed
 
 Examples:
-1. Stylized forest: trees (sparse) => mushrooms where tree probability is low => grass fills gaps
-2. Town dressing: benches in plaza masks => lamp posts along roads with spacing => clutter only where nothing else landed
-3. Dungeon encounters: camps in large rooms => enemies avoid camp influence => rare loot in dead‑ends with minimum spacing
+1. Stylized forest: trees sparse, mushrooms where tree probability is low, grass fills gaps.
+2. Town dressing: benches in plaza masks, lamp posts along roads with spacing, clutter where nothing else landed.
+3. Dungeon encounters: camps in large rooms, enemies avoid camp influence, rare loot in dead ends with minimum spacing.
 
-Bevy integration highlights:
-- Assets: versioned, hot‑reloadable scatter plans
-- ECS: placements become entities that can be tagged/decorated
-- Async: compute on `AsyncComputeTaskPool`; main schedule stays responsive
+Integration details:
+- Assets: `*.scatter` plans loaded by `AssetServer`
+- ECS: placements become entities you can tag and decorate
+- Async: jobs run on `AsyncComputeTaskPool`
 - Determinism: same seed + plan + textures = identical placements
-- Extensibility: react to events (`ScatterFinished`, messages) to spawn or run custom logic
+- Events: listen to `ScatterFinished` or `ScatterMessage` to drive gameplay or tooling
 
 ## Examples
 
@@ -50,9 +51,9 @@ Add the crates to a Bevy application:
 ```toml
 # Cargo.toml
 [dependencies]
-bevy = "0.17"
-bevy_map_scatter = "0.2"
-map_scatter = "0.2"
+bevy = "0.18"
+bevy_map_scatter = "0.3"
+map_scatter = "0.3"
 ```
 
 Create a scatter plan in `assets/simple.scatter`:
@@ -136,9 +137,7 @@ fn trigger_request(
         .with_chunk_extent(domain.x)
         .with_raster_cell_size(1.0);
 
-    // Spawn an entity to track the request.
-    // In real applications you might want to add your own components here,
-    // or use an existing entity.
+    // Spawn an entity to track the request (attach your own components if needed).
     let entity = commands.spawn_empty().id();
 
     // Trigger the scatter run.
@@ -158,17 +157,26 @@ fn log_finished(finished: On<ScatterFinished>, mut commands: Commands) {
         finished.result.positions_rejected
     );
 
-    // Clean up the entity used for the request.
-    // In real applications you might want to keep it,
-    // depending on your use case.
+    // Clean up the entity used for the request (keep it if you need it later).
     commands.entity(finished.entity).despawn();
 }
 ```
 
 Run the application with `cargo run`. After the scatter job completes, a summary appears in the log; continue with placement logic as needed.
 
+## Streaming (optional)
+
+For moving worlds or endless maps, use `MapScatterStreamingPlugin` and attach
+`ScatterStreamSettings` to an anchor entity. The plugin will spawn/despawn chunks
+around the anchor and emit placement entities tagged with `ScatterStreamPlacement`.
+
+## Alternatives
+
+- [`bevy_feronia`](https://github.com/NicoZweifel/bevy_feronia): more opinionated, art-focused scattering with built-in wind/material/LOD workflows; likely a better fit if you want an end-to-end visual pipeline rather than a low-level, data-driven scatter core.
+
 ## Compatibility
 
 | `bevy_map_scatter` | `map_scatter` | `bevy` |
 | ------------------ | ------------- | ------ |
+| `0.3`              | `0.2`         | `0.18` |
 | `0.2`              | `0.2`         | `0.17` |

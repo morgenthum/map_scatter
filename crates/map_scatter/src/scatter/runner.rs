@@ -13,8 +13,8 @@ use crate::fieldgraph::program::FieldProgram;
 use crate::fieldgraph::runtime::FieldRuntime;
 use crate::fieldgraph::{ChunkId, TextureRegistry};
 use crate::scatter::evaluator::KindEvaluation;
-use crate::scatter::events::{EventSink, OverlaySummary, ScatterEvent};
-use crate::scatter::overlay::{build_overlay_mask_from_positions, OverlayTexture};
+use crate::scatter::events::{EventSink, OverlaySummary, ScatterEvent, ScatterEventKind};
+use crate::scatter::overlay::{build_overlay_mask_from_positions_in_domain, OverlayTexture};
 use crate::scatter::plan::{Layer, Plan, SelectionStrategy};
 use crate::scatter::selection::{pick_highest_probability, pick_weighted_random};
 use crate::scatter::{chunk, Kind, KindId, DEFAULT_PROBABILITY_WHEN_MISSING};
@@ -22,7 +22,9 @@ use crate::scatter::{chunk, Kind, KindId, DEFAULT_PROBABILITY_WHEN_MISSING};
 /// Represents a placed instance of a kind at a specific position.
 #[derive(Debug, Clone)]
 pub struct Placement {
+    /// Kind identifier for this placement.
     pub kind_id: KindId,
+    /// World/domain position of the placement.
     pub position: Vec2,
 }
 
@@ -30,9 +32,15 @@ pub struct Placement {
 #[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct RunConfig {
+    /// Size of the evaluated domain in world units.
     pub domain_extent: Vec2,
+    /// World-space center of the evaluated domain.
+    pub domain_center: Vec2,
+    /// Chunk size used for evaluation in world units.
     pub chunk_extent: f32,
+    /// Raster cell size used for field sampling in world units.
     pub raster_cell_size: f32,
+    /// Extra halo cells around each chunk for filters and EDT.
     pub grid_halo: usize,
 }
 
@@ -40,6 +48,7 @@ impl Default for RunConfig {
     fn default() -> Self {
         Self {
             domain_extent: Vec2::new(0.0, 0.0),
+            domain_center: Vec2::ZERO,
             chunk_extent: 100.0,
             raster_cell_size: 1.0,
             grid_halo: 2,
@@ -52,6 +61,7 @@ impl RunConfig {
     pub fn new(domain_extent: Vec2) -> Self {
         Self {
             domain_extent,
+            domain_center: Vec2::ZERO,
             ..Default::default()
         }
     }
@@ -59,6 +69,12 @@ impl RunConfig {
     /// Sets the chunk extent.
     pub fn with_chunk_extent(mut self, chunk_extent: f32) -> Self {
         self.chunk_extent = chunk_extent;
+        self
+    }
+
+    /// Sets the domain center in world coordinates.
+    pub fn with_domain_center(mut self, domain_center: Vec2) -> Self {
+        self.domain_center = domain_center;
         self
     }
 
@@ -96,8 +112,11 @@ impl RunConfig {
 #[non_exhaustive]
 #[derive(Debug, Clone, Default)]
 pub struct RunResult {
+    /// Placements produced by the run.
     pub placements: Vec<Placement>,
+    /// Total candidate positions evaluated.
     pub positions_evaluated: usize,
+    /// Total candidate positions rejected.
     pub positions_rejected: usize,
 }
 
@@ -119,16 +138,19 @@ impl RunResult {
 }
 
 pub struct ScatterRunner<'a> {
+    /// Run configuration applied to this runner.
     pub config: RunConfig,
+    /// Shared texture registry used during evaluation.
     pub base_textures: &'a TextureRegistry,
-    pub cache: &'a mut FieldProgramCache,
+    /// Program cache used to reuse compiled field graphs.
+    pub cache: &'a FieldProgramCache,
 }
 
 impl<'a> ScatterRunner<'a> {
     pub fn try_new(
         config: RunConfig,
         base_textures: &'a TextureRegistry,
-        cache: &'a mut FieldProgramCache,
+        cache: &'a FieldProgramCache,
     ) -> Result<Self> {
         config.validate()?;
         Ok(Self {
@@ -141,7 +163,7 @@ impl<'a> ScatterRunner<'a> {
     pub fn new(
         config: RunConfig,
         base_textures: &'a TextureRegistry,
-        cache: &'a mut FieldProgramCache,
+        cache: &'a FieldProgramCache,
     ) -> Self {
         debug_assert!(
             config.domain_extent.x > 0.0 && config.domain_extent.y > 0.0,
@@ -229,7 +251,7 @@ pub fn run_layer<R: RngCore>(
     config: &RunConfig,
     base_textures: &TextureRegistry,
     overlays: &HashMap<String, Arc<OverlayTexture>>,
-    cache: &mut FieldProgramCache,
+    cache: &FieldProgramCache,
     rng: &mut R,
     sink: Option<&mut dyn EventSink>,
 ) -> (RunResult, Option<(String, Arc<OverlayTexture>)>) {
@@ -250,7 +272,7 @@ pub fn run_layer_with_events<R: RngCore>(
     config: &RunConfig,
     base_textures: &TextureRegistry,
     overlays: &HashMap<String, Arc<OverlayTexture>>,
-    cache: &mut FieldProgramCache,
+    cache: &FieldProgramCache,
     rng: &mut R,
     sink: &mut dyn EventSink,
 ) -> (RunResult, Option<(String, Arc<OverlayTexture>)>) {
@@ -271,17 +293,19 @@ struct LayerExecContext<'a> {
 fn run_layer_with_events_internal<R: RngCore>(
     layer: &Layer,
     ctx: &LayerExecContext<'_>,
-    cache: &mut FieldProgramCache,
+    cache: &FieldProgramCache,
     rng: &mut R,
     sink: &mut dyn EventSink,
     layer_index: usize,
 ) -> (RunResult, Option<(String, Arc<OverlayTexture>)>) {
     if layer.kinds.is_empty() {
         warn!("Layer '{}' has no kinds; skipping.", layer.id);
-        sink.send(ScatterEvent::Warning {
-            context: format!("layer:{}", layer.id),
-            message: "Layer has no kinds; skipping".into(),
-        });
+        if sink.wants(ScatterEventKind::Warning) {
+            sink.send(ScatterEvent::Warning {
+                context: format!("layer:{}", layer.id),
+                message: "Layer has no kinds; skipping".into(),
+            });
+        }
         return (
             RunResult {
                 placements: Vec::new(),
@@ -293,17 +317,20 @@ fn run_layer_with_events_internal<R: RngCore>(
     }
 
     let domain_extent = ctx.config.domain_extent;
+    let domain_center = ctx.config.domain_center;
 
     let opts = CompileOptions::default();
-    let mut kind_info: Vec<(Kind, FieldProgram, Vec<String>, Option<String>)> = Vec::new();
+    let mut kind_info: Vec<(Kind, Arc<FieldProgram>, Vec<String>, Option<String>)> = Vec::new();
     // Emit layer start
-    sink.send(ScatterEvent::LayerStarted {
-        index: layer_index,
-        id: layer.id.clone(),
-        kinds: layer.kinds.iter().map(|k| k.id.clone()).collect(),
-        overlay_mask_size_px: layer.overlay_mask_size_px,
-        overlay_brush_radius_px: layer.overlay_brush_radius_px,
-    });
+    if sink.wants(ScatterEventKind::LayerStarted) {
+        sink.send(ScatterEvent::LayerStarted {
+            index: layer_index,
+            id: layer.id.clone(),
+            kinds: layer.kinds.iter().map(|k| k.id.clone()).collect(),
+            overlay_mask_size_px: layer.overlay_mask_size_px,
+            overlay_brush_radius_px: layer.overlay_brush_radius_px,
+        });
+    }
     for k in &layer.kinds {
         match cache.get_or_compile(k, &opts) {
             Ok(program) => {
@@ -329,12 +356,14 @@ fn run_layer_with_events_internal<R: RngCore>(
                         "Kind '{}' has multiple Probability fields; using the first: {:?}.",
                         k.id, prob_ids
                     );
-                    sink.send(ScatterEvent::Warning {
-                        context: format!("layer:{} kind:{}", layer.id, k.id),
-                        message: format!(
-                            "Multiple Probability fields found; using first: {prob_ids:?}"
-                        ),
-                    });
+                    if sink.wants(ScatterEventKind::Warning) {
+                        sink.send(ScatterEvent::Warning {
+                            context: format!("layer:{} kind:{}", layer.id, k.id),
+                            message: format!(
+                                "Multiple Probability fields found; using first: {prob_ids:?}"
+                            ),
+                        });
+                    }
                 }
                 let prob: Option<String> = prob_ids.into_iter().next();
                 kind_info.push((k.clone(), program.clone(), gates, prob));
@@ -344,10 +373,12 @@ fn run_layer_with_events_internal<R: RngCore>(
                     "Failed to compile kind '{}' in layer '{}': {}.",
                     k.id, layer.id, e
                 );
-                sink.send(ScatterEvent::Warning {
-                    context: format!("layer:{} kind:{}", layer.id, k.id),
-                    message: format!("Failed to compile kind: {e}"),
-                });
+                if sink.wants(ScatterEventKind::Warning) {
+                    sink.send(ScatterEvent::Warning {
+                        context: format!("layer:{} kind:{}", layer.id, k.id),
+                        message: format!("Failed to compile kind: {e}"),
+                    });
+                }
             }
         }
     }
@@ -363,7 +394,11 @@ fn run_layer_with_events_internal<R: RngCore>(
     }
 
     let positions_mint = layer.sampling.generate(domain_extent.into(), rng);
-    let positions: Vec<Vec2> = positions_mint.into_iter().map(Vec2::from).collect();
+    let positions: Vec<Vec2> = positions_mint
+        .into_iter()
+        .map(Vec2::from)
+        .map(|p| p + domain_center)
+        .collect();
 
     let mut layer_textures =
         TextureRegistry::with_capacity(ctx.base_textures.len() + ctx.overlays.len());
@@ -377,9 +412,10 @@ fn run_layer_with_events_internal<R: RngCore>(
 
     let mut placed: Vec<Placement> = Vec::new();
     for position in positions.iter().copied() {
-        let (chunk, grid) = chunk::chunk_id_and_grid_for_position_centered(
+        let (chunk, grid) = chunk::chunk_id_and_grid_for_position_in_domain(
             position,
             domain_extent,
+            domain_center,
             ctx.config.chunk_extent,
             ctx.config.raster_cell_size,
             ctx.config.grid_halo,
@@ -430,23 +466,24 @@ fn run_layer_with_events_internal<R: RngCore>(
             .map(|r| r.weight)
             .fold(0.0f32, f32::max);
 
-        // Emit per-position evaluation summary
-        sink.send(ScatterEvent::PositionEvaluated {
-            layer_index,
-            layer_id: layer.id.clone(),
-            position,
-            evaluations: results
-                .iter()
-                .map(|r| {
-                    crate::scatter::events::KindEvaluationLite::new(
-                        r.kind.id.clone(),
-                        r.allowed,
-                        r.weight,
-                    )
-                })
-                .collect(),
-            max_weight,
-        });
+        if sink.wants(ScatterEventKind::PositionEvaluated) {
+            sink.send(ScatterEvent::PositionEvaluated {
+                layer_index,
+                layer_id: layer.id.clone(),
+                position,
+                evaluations: results
+                    .iter()
+                    .map(|r| {
+                        crate::scatter::events::KindEvaluationLite::new(
+                            r.kind.id.clone(),
+                            r.allowed,
+                            r.weight,
+                        )
+                    })
+                    .collect(),
+                max_weight,
+            });
+        }
 
         let rand01 = crate::sampling::rand01(rng);
         if max_weight > 0.0 && rand01 < max_weight {
@@ -459,11 +496,13 @@ fn run_layer_with_events_internal<R: RngCore>(
                     kind_id: selected_kind.id.clone(),
                     position,
                 };
-                sink.send(ScatterEvent::PlacementMade {
-                    layer_index,
-                    layer_id: layer.id.clone(),
-                    placement: placement.clone(),
-                });
+                if sink.wants(ScatterEventKind::PlacementMade) {
+                    sink.send(ScatterEvent::PlacementMade {
+                        layer_index,
+                        layer_id: layer.id.clone(),
+                        placement: placement.clone(),
+                    });
+                }
                 placed.push(placement);
             }
         }
@@ -481,24 +520,29 @@ fn run_layer_with_events_internal<R: RngCore>(
                 "Layer '{}' overlay size is zero; skipping overlay.",
                 layer.id
             );
-            sink.send(ScatterEvent::Warning {
-                context: format!("layer:{}", layer.id),
-                message: "Overlay size is zero; skipping overlay".into(),
-            });
+            if sink.wants(ScatterEventKind::Warning) {
+                sink.send(ScatterEvent::Warning {
+                    context: format!("layer:{}", layer.id),
+                    message: "Overlay size is zero; skipping overlay".into(),
+                });
+            }
             None
         } else if brush_radius < 0 {
             warn!(
                 "Layer '{}' overlay brush radius < 0; skipping overlay.",
                 layer.id
             );
-            sink.send(ScatterEvent::Warning {
-                context: format!("layer:{}", layer.id),
-                message: "Overlay brush radius < 0; skipping overlay".into(),
-            });
+            if sink.wants(ScatterEventKind::Warning) {
+                sink.send(ScatterEvent::Warning {
+                    context: format!("layer:{}", layer.id),
+                    message: "Overlay brush radius < 0; skipping overlay".into(),
+                });
+            }
             None
         } else {
-            let mask = build_overlay_mask_from_positions(
+            let mask = build_overlay_mask_from_positions_in_domain(
                 domain_extent,
+                domain_center,
                 &placed.iter().map(|p| p.position).collect::<Vec<_>>(),
                 mask_w,
                 mask_h,
@@ -509,11 +553,13 @@ fn run_layer_with_events_internal<R: RngCore>(
                 name: mask_name.clone(),
                 size_px: (mask_w, mask_h),
             };
-            sink.send(ScatterEvent::OverlayGenerated {
-                layer_index,
-                layer_id: layer.id.clone(),
-                summary: summary.clone(),
-            });
+            if sink.wants(ScatterEventKind::OverlayGenerated) {
+                sink.send(ScatterEvent::OverlayGenerated {
+                    layer_index,
+                    layer_id: layer.id.clone(),
+                    summary: summary.clone(),
+                });
+            }
             Some((mask_name, Arc::new(mask)))
         }
     } else {
@@ -534,7 +580,7 @@ pub fn run_plan<R: RngCore>(
     plan: &Plan,
     config: &RunConfig,
     base_textures: &TextureRegistry,
-    cache: &mut FieldProgramCache,
+    cache: &FieldProgramCache,
     rng: &mut R,
     sink: Option<&mut dyn EventSink>,
 ) -> RunResult {
@@ -549,21 +595,25 @@ pub fn run_plan_with_events<R: RngCore>(
     plan: &Plan,
     config: &RunConfig,
     base_textures: &TextureRegistry,
-    cache: &mut FieldProgramCache,
+    cache: &FieldProgramCache,
     rng: &mut R,
     sink: &mut dyn EventSink,
 ) -> RunResult {
-    sink.send(ScatterEvent::RunStarted {
-        config: config.clone(),
-        layer_count: plan.layers.len(),
-    });
+    if sink.wants(ScatterEventKind::RunStarted) {
+        sink.send(ScatterEvent::RunStarted {
+            config: config.clone(),
+            layer_count: plan.layers.len(),
+        });
+    }
 
     if plan.layers.is_empty() {
         warn!("Placement plan has no layers.");
-        sink.send(ScatterEvent::Warning {
-            context: "plan".into(),
-            message: "Placement plan has no layers".into(),
-        });
+        if sink.wants(ScatterEventKind::Warning) {
+            sink.send(ScatterEvent::Warning {
+                context: "plan".into(),
+                message: "Placement plan has no layers".into(),
+            });
+        }
     }
 
     let mut overlays: HashMap<String, Arc<OverlayTexture>> = HashMap::new();
@@ -597,12 +647,14 @@ pub fn run_plan_with_events<R: RngCore>(
             size_px: (texture.width, texture.height),
         });
 
-        sink.send(ScatterEvent::LayerFinished {
-            index: layer_idx,
-            id: layer.id.clone(),
-            result: layer_result.clone(),
-            overlay: overlay_summary.clone(),
-        });
+        if sink.wants(ScatterEventKind::LayerFinished) {
+            sink.send(ScatterEvent::LayerFinished {
+                index: layer_idx,
+                id: layer.id.clone(),
+                result: layer_result.clone(),
+                overlay: overlay_summary.clone(),
+            });
+        }
 
         if let Some((name, ov)) = overlay_opt {
             overlays.insert(name, ov);
@@ -615,9 +667,11 @@ pub fn run_plan_with_events<R: RngCore>(
         positions_rejected: total_reject,
     };
 
-    sink.send(ScatterEvent::RunFinished {
-        result: result.clone(),
-    });
+    if sink.wants(ScatterEventKind::RunFinished) {
+        sink.send(ScatterEvent::RunFinished {
+            result: result.clone(),
+        });
+    }
 
     result
 }
@@ -654,7 +708,7 @@ mod tests {
 
     #[test]
     fn layer_events_use_supplied_index() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let textures = TextureRegistry::new();
         let mut rng = StdRng::seed_from_u64(42);
 
@@ -675,7 +729,7 @@ mod tests {
             &plan,
             &base_config(),
             &textures,
-            &mut cache,
+            &cache,
             &mut rng,
             &mut sink,
         );
@@ -703,7 +757,7 @@ mod tests {
 
     #[test]
     fn layer_finished_reports_overlay_dimensions() {
-        let mut cache = FieldProgramCache::new();
+        let cache = FieldProgramCache::new();
         let textures = TextureRegistry::new();
         let mut rng = StdRng::seed_from_u64(7);
 
@@ -721,7 +775,7 @@ mod tests {
             &plan,
             &base_config(),
             &textures,
-            &mut cache,
+            &cache,
             &mut rng,
             &mut sink,
         );

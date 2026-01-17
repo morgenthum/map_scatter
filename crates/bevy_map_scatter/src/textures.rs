@@ -10,6 +10,7 @@ use map_scatter::prelude::{Texture, TextureChannel};
 ///   [`Image`] changes.
 pub struct ImageTexture {
     domain_extent: Vec2,
+    domain_center: Vec2,
     format: TextureFormat,
     pixels: Arc<Vec<u8>>,
     width: u32,
@@ -19,6 +20,15 @@ pub struct ImageTexture {
 impl ImageTexture {
     /// Creates an [`ImageTexture`] snapshot from a Bevy [`Image`] and maps it to a specified domain extent.
     pub fn from_image(image: &Image, domain_extent: Vec2) -> Option<Self> {
+        Self::from_image_with_center(image, domain_extent, Vec2::ZERO)
+    }
+
+    /// Creates an [`ImageTexture`] snapshot from a Bevy [`Image`] and maps it to a specified domain.
+    pub fn from_image_with_center(
+        image: &Image,
+        domain_extent: Vec2,
+        domain_center: Vec2,
+    ) -> Option<Self> {
         let format = image.texture_descriptor.format;
 
         let supported = matches!(
@@ -40,6 +50,7 @@ impl ImageTexture {
 
         Some(Self {
             domain_extent,
+            domain_center,
             format,
             pixels,
             width,
@@ -91,7 +102,6 @@ impl Texture for ImageTexture {
         }
 
         // Map world/domain coordinates to image texels using a centered domain, like overlays.
-        // Use a configurable domain extent: x∈[-dw/2,dw/2], y∈[-dh/2,dh/2], independent of image size.
         let (w, h) = (self.width, self.height);
         if w == 0 || h == 0 {
             return 0.0;
@@ -100,8 +110,9 @@ impl Texture for ImageTexture {
         if dw == 0.0 || dh == 0.0 {
             return 0.0;
         }
-        let u = ((p.x / dw) + 0.5).clamp(0.0, 1.0);
-        let v = ((p.y / dh) + 0.5).clamp(0.0, 1.0);
+        let local = p - self.domain_center;
+        let u = ((local.x / dw) + 0.5).clamp(0.0, 1.0);
+        let v = ((local.y / dh) + 0.5).clamp(0.0, 1.0);
         let x = ((u * w as f32) as u32).min(w.saturating_sub(1));
         let y = ((v * h as f32) as u32).min(h.saturating_sub(1));
 

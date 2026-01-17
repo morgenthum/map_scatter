@@ -9,18 +9,30 @@ use crate::sampling::{next_down, rand01, PositionSampling};
 #[derive(Debug, Clone, Copy)]
 pub enum ParentStrategy {
     /// Fixed number of parent centers.
-    Count(usize),
+    Count(
+        /// Number of parent centers to generate.
+        usize,
+    ),
     /// Parent density per unit area.
-    Density(f32),
+    Density(
+        /// Parents per unit area.
+        f32,
+    ),
 }
 
 /// Displacement kernel for children relative to their parent center.
 #[derive(Debug, Clone, Copy)]
 pub enum ClusterKernel {
     /// Thomas process: isotropic Gaussian with standard deviation `sigma`.
-    Gaussian { sigma: f32 },
+    Gaussian {
+        /// Standard deviation of the Gaussian kernel.
+        sigma: f32,
+    },
     /// Neyman–Scott process: uniform within a disk of radius `radius`.
-    UniformDisk { radius: f32 },
+    UniformDisk {
+        /// Disk radius for uniform sampling.
+        radius: f32,
+    },
 }
 
 /// Clustered sampling (Thomas/Neyman–Scott).

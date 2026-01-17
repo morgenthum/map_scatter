@@ -42,10 +42,10 @@ fn main() -> anyhow::Result<()> {
         .with_raster_cell_size(1.0)
         .with_grid_halo(4);
 
-    let mut cache = FieldProgramCache::new();
+    let cache = FieldProgramCache::new();
     let mut rng = StdRng::seed_from_u64(42);
 
-    let mut runner = ScatterRunner::try_new(config, &texture_registry, &mut cache)?;
+    let mut runner = ScatterRunner::try_new(config, &texture_registry, &cache)?;
     let result = runner.run(&plan, &mut rng);
 
     render(&result)?;
