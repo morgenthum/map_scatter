@@ -10,6 +10,7 @@ nav:
   - Getting Started: quickstart.md
   - Concepts: concepts.md
   - Guides:
+      - 2D, 2.5D, and 3D usage: 2d-3d.md
       - Bevy Integration: bevy.md
   - Architecture: architecture.md
   - Reference: reference.md
@@ -26,12 +27,6 @@ theme:
     - scheme: default
       primary: custom
       accent: custom
-  font:
-    text: Space Mono
-    code: Fira Code
-
-extra_css:
-  - stylesheets/extra.css
 
 plugins:
   - search
