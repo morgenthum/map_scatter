@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="200" viewBox="0 0 900 200" role="img" aria-label="Projection flow from input surface to placements">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#0f172a" />
+    </marker>
+  </defs>
+  <style>
+    .box { fill: #f8fafc; stroke: #0f172a; stroke-width: 2; }
+    .arrow { stroke: #0f172a; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    .label { font-family: "Space Mono", "Fira Code", monospace; font-size: 14px; fill: #0f172a; }
+  </style>
+
+  <rect class="box" x="20" y="60" width="180" height="80" rx="8" />
+  <text class="label" x="110" y="92" text-anchor="middle">Input</text>
+  <text class="label" x="110" y="112" text-anchor="middle">2D map or 3D</text>
+
+  <rect class="box" x="240" y="60" width="180" height="80" rx="8" />
+  <text class="label" x="330" y="92" text-anchor="middle">Project to 2D</text>
+  <text class="label" x="330" y="112" text-anchor="middle">domain</text>
+
+  <rect class="box" x="460" y="60" width="180" height="80" rx="8" />
+  <text class="label" x="550" y="92" text-anchor="middle">Scatter plan</text>
+  <text class="label" x="550" y="112" text-anchor="middle">rules + sampling</text>
+
+  <rect class="box" x="680" y="60" width="180" height="80" rx="8" />
+  <text class="label" x="770" y="92" text-anchor="middle">Placements</text>
+  <text class="label" x="770" y="112" text-anchor="middle">lift to 3D</text>
+
+  <line class="arrow" x1="200" y1="100" x2="240" y2="100" />
+  <line class="arrow" x1="420" y1="100" x2="460" y2="100" />
+  <line class="arrow" x1="640" y1="100" x2="680" y2="100" />
+</svg>
