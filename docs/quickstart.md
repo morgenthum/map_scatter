@@ -12,7 +12,7 @@ This page gets you from zero to a working scatter run. Choose the core library i
 === "Core library"
     ```toml
     [dependencies]
-    map_scatter = "0.3"
+    map_scatter = "0.4"
     rand = "0.9"
     glam = { version = "0.30", features = ["mint"] }
     mint = "0.5"
@@ -20,18 +20,18 @@ This page gets you from zero to a working scatter run. Choose the core library i
 
     Optional features:
 
-    - `map_scatter = { version = "0.3", features = ["serde"] }` to enable `serde` support.
+    - `map_scatter = { version = "0.4", features = ["serde"] }` to enable `serde` support.
 
 === "Bevy plugin"
     ```toml
     [dependencies]
     bevy = "0.18"
-    bevy_map_scatter = "0.3"
+    bevy_map_scatter = "0.4"
     ```
 
     Optional:
 
-    - Add `map_scatter = "0.3"` if you want core types directly.
+    - Add `map_scatter = "0.4"` if you want core types directly.
 
 ## Hello, scatter
 

@@ -52,8 +52,8 @@ Add the crates to a Bevy application:
 # Cargo.toml
 [dependencies]
 bevy = "0.18"
-bevy_map_scatter = "0.3"
-map_scatter = "0.3"
+bevy_map_scatter = "0.4"
+map_scatter = "0.4"
 ```
 
 Create a scatter plan in `assets/simple.scatter`:

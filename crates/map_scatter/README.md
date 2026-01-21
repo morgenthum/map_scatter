@@ -70,7 +70,7 @@ Add the dependency:
 
 ```toml
 [dependencies]
-map_scatter = "0.3"
+map_scatter = "0.4"
 rand = "0.9"
 glam = { version = "0.30", features = ["mint"] }
 mint = "0.5"

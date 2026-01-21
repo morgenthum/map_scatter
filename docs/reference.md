@@ -35,7 +35,7 @@ This page highlights the most important entry points, configuration knobs, and c
 
 | bevy_map_scatter | map_scatter | bevy |
 | --- | --- | --- |
-| 0.3 | 0.3 | 0.18 |
+| 0.4 | 0.4 | 0.18 |
 
 ## Links
 

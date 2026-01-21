@@ -7,7 +7,7 @@
 ```toml
 [dependencies]
 bevy = "0.18"
-bevy_map_scatter = "0.3"
+bevy_map_scatter = "0.4"
 ```
 
 The plugin enables `serde` and `ron` by default so you can author `*.scatter` assets.
