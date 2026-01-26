@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
