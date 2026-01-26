@@ -27,7 +27,7 @@ bevy = { default-features = false, version = "0.18", features = [
 map_scatter = { workspace = true }
 rand = "0.9"
 serde = { version = "1.0", features = ["derive"], optional = true }
-glam = "0.30"
+glam = "0.31"
 ron = { version = "0.12", optional = true }
 anyhow = "1"
 crossbeam-channel = "0.5"
