@@ -9,7 +9,7 @@ description = "Executable examples for map_scatter."
 [dependencies]
 map_scatter = { workspace = true }
 
-glam = "0.30"
+glam = "0.31"
 rand = "0.9"
 image = { version = "0.25", default-features = false, features = ["png"] }
 anyhow = "1"
