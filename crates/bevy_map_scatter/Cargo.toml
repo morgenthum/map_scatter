@@ -25,7 +25,7 @@ bevy = { default-features = false, version = "0.18", features = [
     "bevy_render",
 ] }
 map_scatter = { workspace = true }
-rand = "0.9"
+rand = "0.10"
 serde = { version = "1.0", features = ["derive"], optional = true }
 glam = "0.30"
 ron = { version = "0.12", optional = true }
