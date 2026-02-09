@@ -10,6 +10,6 @@ description = "Executable examples for map_scatter."
 map_scatter = { workspace = true }
 
 glam = "0.30"
-rand = "0.9"
+rand = "0.10"
 image = { version = "0.25", default-features = false, features = ["png"] }
 anyhow = "1"

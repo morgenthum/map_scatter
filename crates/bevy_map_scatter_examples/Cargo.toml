@@ -11,5 +11,5 @@ description = "Executable examples for bevy_map_scatter."
 bevy = "0.18"
 bevy_map_scatter = { workspace = true }
 map_scatter = { workspace = true }
-rand = "0.9"
+rand = "0.10"
 glam = "0.30"
